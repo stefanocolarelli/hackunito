@@ -1,0 +1,10 @@
+#et_page_title { margin-bottom: 15px; }
+
+#et_modules_select { margin-bottom: 17px; }
+	#et_modules_select a { display: block; margin-bottom: 10px; }
+	.et_delete_module { display: block; margin-top: 15px; }
+
+.submit { text-align: right; width: 540px; }
+
+.et_module { width: 500px; background: #F7F7F7; padding: 1px 20px 20px; margin-bottom: 10px; cursor: move; }
+	.et_hb_checkboxes { display: block; margin: 5px 0; }
