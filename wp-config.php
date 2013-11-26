@@ -1,49 +1,44 @@
 <?php
 /**
- * Il file base di configurazione di WordPress.
+ * The base configurations of the WordPress.
  *
- * Questo file definisce le seguenti configurazioni: impostazioni MySQL,
- * Prefisso Tabella, Chiavi Segrete, Lingua di WordPress e ABSPATH.
- * E' possibile trovare ultetriori informazioni visitando la pagina: del
- * Codex {@link http://codex.wordpress.org/Editing_wp-config.php
- * Editing wp-config.php}. E' possibile ottenere le impostazioni per
- * MySQL dal proprio fornitore di hosting.
+ * This file has the following configurations: MySQL settings, Table Prefix,
+ * Secret Keys, WordPress Language, and ABSPATH. You can find more information
+ * by visiting {@link http://codex.wordpress.org/Editing_wp-config.php Editing
+ * wp-config.php} Codex page. You can get the MySQL settings from your web host.
  *
- * Questo file viene utilizzato, durante l'installazione, dallo script
- * di creazione di wp-config.php. Non è necessario utilizzarlo solo via
- * web,è anche possibile copiare questo file in "wp-config.php" e
- * rimepire i valori corretti.
+ * This file is used by the wp-config.php creation script during the
+ * installation. You don't have to use the web site, you can just copy this file
+ * to "wp-config.php" and fill in the values.
  *
  * @package WordPress
  */
 
-// ** Impostazioni MySQL - E? possibile ottenere questoe informazioni
-// ** dal proprio fornitore di hosting ** //
-/** Il nome del database di WordPress */
-define('DB_NAME', 'hackathon');
+// ** MySQL settings - You can get this info from your web host ** //
+/** The name of the database for WordPress */
+define('DB_NAME', 'common-box');
 
-/** Nome utente del database MySQL */
+/** MySQL database username */
 define('DB_USER', 'root');
 
-/** Password del database MySQL */
+/** MySQL database password */
 define('DB_PASSWORD', '');
 
-/** Hostname MySQL  */
+/** MySQL hostname */
 define('DB_HOST', 'localhost');
 
-/** Charset del Database da utilizare nella creazione delle tabelle. */
+/** Database Charset to use in creating database tables. */
 define('DB_CHARSET', 'utf8');
 
-/** Il tipo di Collazione del Database. Da non modificare se non si ha
-idea di cosa sia. */
+/** The Database Collate type. Don't change this if in doubt. */
 define('DB_COLLATE', '');
 
 /**#@+
- * Chiavi Univoche di Autenticazione e di Salatura.
+ * Authentication Unique Keys and Salts.
  *
- * Modificarle con frasi univoche differenti!
- * E' possibile generare tali chiavi utilizzando {@link https://api.wordpress.org/secret-key/1.1/salt/ servizio di chiavi-segrete di WordPress.org}
- * E' possibile cambiare queste chiavi in qualsiasi momento, per invalidare tuttii cookie esistenti. Ciò forzerà tutti gli utenti ad effettuare nuovamente il login.
+ * Change these to different unique phrases!
+ * You can generate these using the {@link https://api.wordpress.org/secret-key/1.1/salt/ WordPress.org secret-key service}
+ * You can change these at any point in time to invalidate all existing cookies. This will force all users to have to log in again.
  *
  * @since 2.6.0
  */
@@ -59,43 +54,37 @@ define('NONCE_SALT',       'put your unique phrase here');
 /**#@-*/
 
 /**
- * Prefisso Tabella del Database WordPress .
+ * WordPress Database Table prefix.
  *
- * E' possibile avere installazioni multiple su di un unico database if you give each a unique
- * fornendo a ciascuna installazione un prefisso univoco.
- * Solo numeri, lettere e sottolineatura!
+ * You can have multiple installations in one database if you give each a unique
+ * prefix. Only numbers, letters, and underscores please!
  */
 $table_prefix  = 'wp_';
 
 /**
- * Lingua di Localizzazione di WordPress, di base Inglese.
+ * WordPress Localized Language, defaults to English.
  *
- * Modificare questa voce per localizzare WordPress. Occorre che nella cartella
- * wp-content/languages sia installato un file MO corrispondente alla lingua
- * selezionata. Ad esempio, installare de_DE.mo in to wp-content/languages ed
- * impostare WPLANG a 'de_DE' per abilitare il supporto alla lingua tedesca.
- *
- * Tale valore è già impostato per la lingua italiana
+ * Change this to localize WordPress. A corresponding MO file for the chosen
+ * language must be installed to wp-content/languages. For example, install
+ * de_DE.mo to wp-content/languages and set WPLANG to 'de_DE' to enable German
+ * language support.
  */
-define('WPLANG', 'it_IT');
+define('WPLANG', '');
 
 /**
- * Per gli sviluppatori: modalità di debug di WordPress.
+ * For developers: WordPress debugging mode.
  *
- * Modificare questa voce a TRUE per abilitare la visualizzazione degli avvisi
- * durante lo sviluppo.
- * E' fortemente raccomandato agli svilupaptori di temi e plugin di utilizare
- * WP_DEBUG all'interno dei loro ambienti di sviluppo.
+ * Change this to true to enable the display of notices during development.
+ * It is strongly recommended that plugin and theme developers use WP_DEBUG
+ * in their development environments.
  */
-//define('WP_DEBUG', true);
 define('WP_DEBUG', false);
-define('SAVEQUERIES', true);
 
-/* Finito, interrompere le modifiche! Buon blogging. */
+/* That's all, stop editing! Happy blogging. */
 
-/** Path assoluto alla directory di WordPress. */
+/** Absolute path to the WordPress directory. */
 if ( !defined('ABSPATH') )
 	define('ABSPATH', dirname(__FILE__) . '/');
 
-/** Imposta lle variabili di WordPress ed include i file. */
+/** Sets up WordPress vars and included files. */
 require_once(ABSPATH . 'wp-settings.php');

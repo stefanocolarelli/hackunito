@@ -17,7 +17,6 @@ function bpdev_can_current_user_create_new_groups($can_create){
     if(bpdev_can_create_new_groups(bp_loggedin_user_id()))
         return true;
     return false;
-    
 }
 
 function bpdev_restrict_group_create($user_id=null){

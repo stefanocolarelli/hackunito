@@ -2,11 +2,11 @@
 # BEGIN WordPress
 <IfModule mod_rewrite.c>
 RewriteEngine On
-RewriteBase /hackathon/
+RewriteBase /wp-commons/
 RewriteRule ^index\.php$ - [L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . /hackathon/index.php [L]
+RewriteRule . /wp-commons/index.php [L]
 </IfModule>
 
 # END WordPress

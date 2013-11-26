@@ -1,0 +1,1885 @@
+[33mcommit c8206f7ac0dea9cc7a3cb057032de7d04fed8dab[m
+Author: stefano_colarelli <stefano@riqua.eu>
+Date:   Wed Nov 6 23:52:27 2013 +0100
+
+    In dev plugins
+
+[1mdiff --git a/wp-content/plugins/blog-categories-for-groups/README b/wp-content/plugins/blog-categories-for-groups/README[m
+[1mnew file mode 100644[m
+[1mindex 0000000..702ffd3[m
+[1m--- /dev/null[m
+[1m+++ b/wp-content/plugins/blog-categories-for-groups/README[m
+[36m@@ -0,0 +1,3 @@[m
+[32m+[m[32mBlog Categories for groups plugin allows BuddyPress group admins to associate categories to groups and act these as the mini blog of a group.[m
+[32m+[m
+[32m+[m[32mPlease move the folder "bcg" to your current theme to make this plugin work.[m
+\ No newline at end of file[m
+[1mdiff --git a/wp-content/plugins/blog-categories-for-groups/bcg-admin.php b/wp-content/plugins/blog-categories-for-groups/bcg-admin.php[m
+[1mnew file mode 100644[m
+[1mindex 0000000..32fadec[m
+[1m--- /dev/null[m
+[1m+++ b/wp-content/plugins/blog-categories-for-groups/bcg-admin.php[m
+[36m@@ -0,0 +1,85 @@[m
+[32m+[m[32m<?php[m
+[32m+[m[32m//handle everything except the front end display[m
+[32m+[m
+[32m+[m[32mclass BCG_Group_Extension extends BP_Group_Extension {[m
+[32m+[m[32mvar $visibility = 'public'; // 'public' will show your extension to non-group members, 'private' means you have to be a member of the group to view your extension.[m
+[32m+[m
+[32m+[m[32mvar $enable_create_step = true; // enable create step[m
+[32m+[m[32mvar $enable_nav_item = false; //do not show in front end[m
+[32m+[m[32mvar $enable_edit_item = true; // If your extensi[m
+[32m+[m	[32mfunction __construct() {[m
+[32m+[m[41m        [m
+[32m+[m[41m        [m
+[32m+[m		[32m$this->name = __('Blog Categories','bcg');[m
+[32m+[m		[32m$this->slug = 'blog-categories';[m
+[32m+[m
+[32m+[m		[32m$this->create_step_position = 21;[m
+[32m+[m		[32m$this->nav_item_position = 31;[m
+[32m+[m	[32m}[m
+[32m+[m[32m//on group crate step[m
+[32m+[m	[32mfunction create_screen() {[m
+[32m+[m		[32mif ( !bp_is_group_creation_step( $this->slug ) )[m
+[32m+[m			[32mreturn false;[m
+[32m+[m		[32mbcg_admin_form();[m
+[32m+[m		[32mwp_nonce_field( 'groups_create_save_' . $this->slug );[m
+[32m+[m	[32m}[m
+[32m+[m[32m//on group create save[m
+[32m+[m	[32mfunction create_screen_save() {[m
+[32m+[m		[32mglobal $bp;[m
+[32m+[m
+[32m+[m		[32mcheck_admin_referer( 'groups_create_save_' . $this->slug );[m
+[32m+[m[32m                $group_id=$bp->groups->new_group_id;[m
+[32m+[m		[32m $cats=$_POST["blog_cats"];[m
+[32m+[m[32m                         //print_r($cats);[m
+[32m+[m			[32mif ( !bcg_update_categories($group_id, $cats) ) {[m
+[32m+[m				[32m//bp_core_add_message( __( 'There was an error updating group blog category settings, please try again.', 'buddypress' ), 'error' );[m
+[32m+[m			[32m} else {[m
+[32m+[m				[32mbp_core_add_message( __( 'Group Blog Categories settings were successfully updated.', 'bcg' ) );[m
+[32m+[m			[32m}[m
+[32m+[m	[32m}[m
+[32m+[m
+[32m+[m	[32mfunction edit_screen() {[m
+[32m+[m		[32mif ( !bp_is_group_admin_screen( $this->slug ) )[m
+[32m+[m			[32mreturn false; ?>[m
+[32m+[m
+[32m+[m[32m        <h2><?php echo esc_attr( $this->name ) ?></h2>[m
+[32m+[m[32m<?php[m
+[32m+[m[32m                    bcg_admin_form();[m
+[32m+[m
+[32m+[m
+[32m+[m		[32mwp_nonce_field( 'groups_edit_save_' . $this->slug );[m
+[32m+[m[32m                ?>[m
+[32m+[m[32m                <p><input type="submit" value="<?php _e( 'Save Changes', 'bcg' ) ?> &rarr;" id="save" name="save" /></p>[m
+[32m+[m[32m                <?php[m
+[32m+[m	[32m}[m
+[32m+[m
+[32m+[m	[32mfunction edit_screen_save() {[m
+[32m+[m		[32mglobal $bp;[m
+[32m+[m
+[32m+[m		[32mif ( !isset( $_POST['save'] ) )[m
+[32m+[m			[32mreturn false;[m
+[32m+[m
+[32m+[m		[32mcheck_admin_referer( 'groups_edit_save_' . $this->slug );[m
+[32m+[m
+[32m+[m
+[32m+[m[32m                $group_id=$bp->groups->current_group->id;[m
+[32m+[m		[32m $cats=$_POST["blog_cats"];[m
+[32m+[m[32m                         //print_r($cats);[m
+[32m+[m			[32mif ( !bcg_update_categories($group_id, $cats) ) {[m
+[32m+[m				[32mbp_core_add_message( __( 'There was an error updating Group Blog Categories settings, please try again.', 'bcg' ), 'error' );[m
+[32m+[m			[32m} else {[m
+[32m+[m				[32mbp_core_add_message( __( 'Group Blog Categories settings were successfully updated.', 'bcg' ) );[m
+[32m+[m			[32m}[m
+[32m+[m
+[32m+[m		[32mbp_core_redirect( bp_get_group_permalink( $bp->groups->current_group ) . '/admin/' . $this->slug );[m
+[32m+[m	[32m}[m
+[32m+[m
+[32m+[m	[32mfunction display() {[m
+[32m+[m		[32m/* Use this function to display the actual content of your group extension when the nav item is selected */[m
+[32m+[m	[32m}[m
+[32m+[m
+[32m+[m	[32mfunction widget_display() {[m
+[32m+[m	[32m}[m
+[32m+[m[32m}[m
+[32m+[m[32mif(!bcg_is_disabled_for_group())[m
+[32m+[m[32m    bp_register_group_extension( 'BCG_Group_Extension' );[m
+[1mdiff --git a/wp-content/plugins/blog-categories-for-groups/bcg-functions.php b/wp-content/plugins/blog-categories-for-groups/bcg-functions.php[m
+[1mnew file mode 100644[m
+[1mindex 0000000..eaf85d8[m
+[1m--- /dev/null[m
+[1m+++ b/wp-content/plugins/blog-categories-for-groups/bcg-functions.php[m
+[36m@@ -0,0 +1,91 @@[m
+[32m+[m[32m<?php[m
+[32m+[m
+[32m+[m[32mfunction bcg_load_template($template){[m
+[32m+[m[41m    [m
+[32m+[m[32m    if(is_readable(STYLESHEETPATH.'/'.$template))[m
+[32m+[m[32m            $load=STYLESHEETPATH.'/'.$template;[m
+[32m+[m[32m    elseif(is_readable(TEMPLATEPATH.'/'.$template))[m
+[32m+[m[32m            $load=TEMPLATEPATH.'/'.$template;[m
+[32m+[m[32m    else[m
+[32m+[m[32m            $load=BCG_PLUGIN_DIR.$template;[m
+[32m+[m[41m    [m
+[32m+[m[32m        include_once $load;[m
+[32m+[m[32m}[m
+[32m+[m[32m/**[m
+[32m+[m[32m *[m
+[32m+[m[32m * @global type $bp[m
+[32m+[m[32m * @return type[m[41m [m
+[32m+[m[32m */[m
+[32m+[m[32mfunction bcg_is_disabled_for_group(){[m
+[32m+[m[32m    global $bp;[m
+[32m+[m[32m    $group_id=false;[m
+[32m+[m[32m    if (bp_is_group_create())[m
+[32m+[m[32m        $group_id=$_COOKIE['bp_new_group_id'];[m
+[32m+[m[32m   else if(bp_is_group ())[m
+[32m+[m[32m        $group_id=$bp->groups->current_group->id;[m
+[32m+[m
+[32m+[m[32m    return apply_filters('bcg_is_disabled_for_group',bcg_is_disabled($group_id));[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m/**[m
+[32m+[m[32m * Can the current user post to group blog[m
+[32m+[m[32m * @global type $bp[m
+[32m+[m[32m * @return type[m[41m [m
+[32m+[m[32m */[m
+[32m+[m[32mfunction bcg_current_user_can_post(){[m
+[32m+[m[32m    global $bp;[m
+[32m+[m[32m    $user_id=  bp_loggedin_user_id();[m
+[32m+[m[32m    $group_id=  bp_get_current_group_id();[m
+[32m+[m[32m    $can_post=is_user_logged_in()&&(groups_is_user_admin($user_id, $group_id)||groups_is_user_mod($user_id, $group_id));[m
+[32m+[m[41m    [m
+[32m+[m[32m    return apply_filters('bcg_current_user_can_post',$can_post,$group_id,$user_id);[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mfunction  bcg_get_home_url($group_id=null){[m
+[32m+[m[32m    global $bp;[m
+[32m+[m
+[32m+[m[32mif(!empty($group_id))[m
+[32m+[m[32m    $group=new BP_Groups_Group ($group_id);[m
+[32m+[m[32melse[m
+[32m+[m[32m    $group=  groups_get_current_group();[m
+[32m+[m
+[32m+[m[32mreturn apply_filters('bcg_home_url',  bp_get_group_permalink($group).BCG_SLUG);[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mfunction bcg_is_disabled($group_id){[m
+[32m+[m[32m    if(empty($group_id))[m
+[32m+[m[32m        return false; //if grou id is empty, it is active[m
+[32m+[m[32m    $is_disabled=groups_get_groupmeta($group_id,"bcg_is_active");[m
+[32m+[m[32m    return apply_filters("bcg_is_disabled",intval($is_disabled),$group_id);[m
+[32m+[m[32m}[m
+[32m+[m[32m//call me business function[m
+[32m+[m[32mfunction bcg_get_categories($group_id){[m
+[32m+[m[32m    $cats=groups_get_groupmeta($group_id,'group_blog_cats');[m
+[32m+[m[32m    return maybe_unserialize($cats);[m
+[32m+[m[32m}[m
+[32m+[m[32m//update table[m
+[32m+[m[32mfunction bcg_update_categories($group_id,$cats){[m
+[32m+[m[32m    $cats=maybe_serialize($cats);[m
+[32m+[m[32m    return  groups_update_groupmeta($group_id, "group_blog_cats", $cats);[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m//get the appropriate query for various screens[m
+[32m+[m[32mfunction bcg_get_query(){[m
+[32m+[m[32m    global $bp;[m
+[32m+[m[32m   $cats=bcg_get_categories($bp->groups->current_group->id);[m
+[32m+[m
+[32m+[m[32m   if(!empty($cats))[m
+[32m+[m[32m        $cats_list=join(",",$cats);[m
+[32m+[m[32m   else return "name=-1";//we know it will not find anything[m
+[32m+[m[32m if(bcg_is_single_post()){[m
+[32m+[m[32m        $slug=$bp->action_variables[0];[m
+[32m+[m[32m        return "name=".$slug."&cat=".$cats_list;[m
+[32m+[m[32m }[m
+[32m+[m[32m $paged=(get_query_var('paged')) ? get_query_var('paged') : 1;[m
+[32m+[m[32mif(bcg_is_category ()){[m
+[32m+[m[32m    $query="cat=".$bp->action_variables[1];[m
+[32m+[m[32m}//only posts from current category[m
+[32m+[m[32melse[m
+[32m+[m[32m    $query= "cat=".$cats_list;[m
+[32m+[m[32mreturn apply_filters("bcg_get_query",$query."&paged=".$paged);[m
+[32m+[m[32m}[m
+\ No newline at end of file[m
+[1mdiff --git a/wp-content/plugins/blog-categories-for-groups/bcg-hooks.php b/wp-content/plugins/blog-categories-for-groups/bcg-hooks.php[m
+[1mnew file mode 100644[m
+[1mindex 0000000..d443fd8[m
+[1m--- /dev/null[m
+[1m+++ b/wp-content/plugins/blog-categories-for-groups/bcg-hooks.php[m
+[36m@@ -0,0 +1,66 @@[m
+[32m+[m[32m<?php[m
+[32m+[m
+[32m+[m[32m/**[m
+[32m+[m[32m * Update and save group preference[m
+[32m+[m[32m */[m
+[32m+[m[32madd_action('groups_group_settings_edited','bcg_save_group_prefs');[m
+[32m+[m[32madd_action('groups_create_group','bcg_save_group_prefs');[m
+[32m+[m[32madd_action('groups_update_group','bcg_save_group_prefs');[m
+[32m+[m
+[32m+[m[32mfunction bcg_save_group_prefs($group_id){[m
+[32m+[m[32m      $disable=$_POST['group-disable-bcg'];[m
+[32m+[m[32m      groups_update_groupmeta($group_id, 'bcg_is_active', $disable);//save preference[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m/*put a settings for allowing disallowing the bcg*/[m
+[32m+[m[32madd_action('bp_before_group_settings_admin','bcg_group_disable_form');[m
+[32m+[m[32madd_action('bp_before_group_settings_creation_step','bcg_group_disable_form');[m
+[32m+[m[32m//check if the group yt is enabled[m
+[32m+[m[32mfunction bcg_group_disable_form(){?>[m
+[32m+[m
+[32m+[m[32m    <div class="checkbox">[m
+[32m+[m[32m        <label><input type="checkbox" name="group-disable-bcg" id="group-disable-bcg" value="1" <?php if(bcg_is_disabled_for_group()):?> checked="checked"<?php endif;?>/> <?php _e( 'Disable Blog Categories', 'bcg' ) ?></label>[m
+[32m+[m[32m    </div>[m
+[32m+[m[32m<?php[m
+[32m+[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m//comment posting a lil bit better[m
+[32m+[m[32madd_action('comment_form','bcg_fix_comment_form' );[m
+[32m+[m
+[32m+[m[32mfunction bcg_fix_comment_form($post_id){[m
+[32m+[m[32m    if(!bcg_is_single_post())[m
+[32m+[m[32m        return;[m
+[32m+[m[32m    $post=get_post($post_id);[m
+[32m+[m[32m    $permalink=  bcg_get_post_permalink($post);[m
+[32m+[m[32m ?>[m
+[32m+[m[32m    <input type='hidden' name='redirect_to' value="<?php echo esc_url($permalink);?>" />[m
+[32m+[m[32m <?php[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m
+[32m+[m[32m/* fixing permalinks for posts/categories inside the bcg loop*/[m
+[32m+[m
+[32m+[m
+[32m+[m[32m//fix post permalink, should we ?[m
+[32m+[m[32madd_filter('post_link','bcg_fix_permalink',10,3);[m
+[32m+[m[32mfunction bcg_fix_permalink($post_link, $id, $leavename){[m
+[32m+[m[32m    if(!is_bcg_pages()||!in_bcg_loop())[m
+[32m+[m[32m        return $post_link;[m
+[32m+[m
+[32m+[m[32m    $post_link=bcg_get_post_permalink(get_post($id));[m
+[32m+[m[32m    return $post_link;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m//on Blog category pages fix the category link to point to internal, may cause troubles in some case[m
+[32m+[m[32madd_filter( 'category_link', 'bcg_fix_category_permalink',10,2 );[m
+[32m+[m[32mfunction bcg_fix_category_permalink($catlink, $category_id){[m
+[32m+[m[32m     if(!is_bcg_pages ()||!in_bcg_loop())[m
+[32m+[m[32m         return $catlink;[m
+[32m+[m[41m     [m
+[32m+[m[32m    $permalink=bcg_get_home_url();[m
+[32m+[m[32m    $cat=get_category($category_id);[m
+[32m+[m[32m    //think about the cat permalink, do we need it or not?[m
+[32m+[m
+[32m+[m[32m    return $permalink.'/category/'.$category_id;//no need for category_name[m
+[32m+[m[32m}[m
+\ No newline at end of file[m
+[1mdiff --git a/wp-content/plugins/blog-categories-for-groups/bcg/blog.php b/wp-content/plugins/blog-categories-for-groups/bcg/blog.php[m
+[1mnew file mode 100644[m
+[1mindex 0000000..81303b2[m
+[1m--- /dev/null[m
+[1m+++ b/wp-content/plugins/blog-categories-for-groups/bcg/blog.php[m
+[36m@@ -0,0 +1,55 @@[m
+[32m+[m	[32m<?php[m
+[32m+[m	[32m/*[m
+[32m+[m	[32mThis page is used for group blog home page/categories archives*/[m
+[32m+[m	[32m?>[m
+[32m+[m	[32m<?php $q=new WP_Query(bcg_get_query());?>[m
+[32m+[m	[32m<?php if ($q->have_posts() ) : ?>[m
+[32m+[m	[32m<?php do_action( 'bp_before_group_blog_content' ) ?>[m
+[32m+[m	[32m<div class="pagination no-ajax">[m
+[32m+[m		[32m<div id="posts-count" class="pag-count">[m
+[32m+[m			[32m<?php bcg_posts_pagination_count($q) ?>[m
+[32m+[m		[32m</div>[m
+[32m+[m
+[32m+[m		[32m<div id="posts-pagination" class="pagination-links">[m
+[32m+[m			[32m<?php bcg_pagination($q) ?>[m
+[32m+[m		[32m</div>[m
+[32m+[m
+[32m+[m	[32m</div>[m
+[32m+[m
+[32m+[m	[32m<?php do_action( 'bp_before_group_blog_list' ) ?>[m
+[32m+[m[32m<?php[m
+[32m+[m	[32mglobal $post;[m
+[32m+[m	[32mbcg_loop_start();//please do not remove it[m
+[32m+[m	[32mwhile($q->have_posts()):$q->the_post();?>[m
+[32m+[m	[32m<div class="post" id="post-<?php the_ID(); ?>">[m
+[32m+[m
+[32m+[m						[32m<div class="author-box">[m
+[32m+[m							[32m<?php echo get_avatar( get_the_author_meta( 'user_email' ), '50' ); ?>[m
+[32m+[m							[32m<p><?php printf( __( 'by %s', 'bcg' ), bp_core_get_userlink( $post->post_author ) ) ?></p>[m
+[32m+[m						[32m</div>[m
+[32m+[m
+[32m+[m						[32m<div class="post-content">[m
+[32m+[m							[32m<h2 class="posttitle"><a href="<?php the_permalink() ?>" rel="bookmark" title="<?php _e( 'Permanent Link to', 'bcg' ) ?> <?php the_title_attribute(); ?>"><?php the_title(); ?></a></h2>[m
+[32m+[m
+[32m+[m							[32m<p class="date"><?php the_time() ?> <em><?php _e( 'in', 'bcg' ) ?> <?php the_category(', ') ?> <?php printf( __( 'by %s', 'bcg' ), bp_core_get_userlink( $post->post_author ) ) ?></em></p>[m
+[32m+[m
+[32m+[m							[32m<div class="entry">[m
+[32m+[m								[32m<?php the_excerpt( ); ?>[m
+[32m+[m							[32m</div>[m
+[32m+[m
+[32m+[m							[32m<p class="postmetadata"><span class="tags"><?php the_tags( __( 'Tags: ', 'bcg' ), ', ', '<br />'); ?></span> <span class="comments"><?php comments_popup_link( __( 'No Comments &#187;', 'bcg' ), __( '1 Comment &#187;', 'bcg' ), __( '% Comments &#187;', 'bcg' ) ); ?></span></p>[m
+[32m+[m						[32m</div>[m
+[32m+[m
+[32m+[m					[32m</div>[m
+[32m+[m	[32m<?php endwhile;?>[m
+[32m+[m	[32m<?php do_action( 'bp_after_group_blog_content' ) ;[m
+[32m+[m	[32mbcg_loop_end();//please do not remove it[m
+[32m+[m	[32m?>[m
+[32m+[m
+[32m+[m[32m<?php else: ?>[m
+[32m+[m
+[32m+[m	[32m<div id="message" class="info">[m
+[32m+[m		[32m<p><?php _e( 'This group has no Blog posts.', 'bcg' ); ?></p>[m
+[32m+[m	[32m</div>[m
+[32m+[m
+[32m+[m[32m<?php endif; ?>[m
+[1mdiff --git a/wp-content/plugins/blog-categories-for-groups/bcg/create.php b/wp-content/plugins/blog-categories-for-groups/bcg/create.php[m
+[1mnew file mode 100644[m
+[1mindex 0000000..0305559[m
+[1m--- /dev/null[m
+[1m+++ b/wp-content/plugins/blog-categories-for-groups/bcg/create.php[m
+[36m@@ -0,0 +1 @@[m
+[32m+[m[32m<?php   bcg_get_post_form(bp_get_group_id());?>[m
+[1mdiff --git a/wp-content/plugins/blog-categories-for-groups/bcg/home.php b/wp-content/plugins/blog-categories-for-groups/bcg/home.php[m
+[1mnew file mode 100644[m
+[1mindex 0000000..876f444[m
+[1m--- /dev/null[m
+[1m+++ b/wp-content/plugins/blog-categories-for-groups/bcg/home.php[m
+[36m@@ -0,0 +1,47 @@[m
+[32m+[m[32m<?php get_header() ?>[m
+[32m+[m
+[32m+[m	[32m<div id="content">[m
+[32m+[m		[32m<div class="padder">[m
+[32m+[m			[32m<?php if ( bp_has_groups() ) : while ( bp_groups() ) : bp_the_group(); ?>[m
+[32m+[m
+[32m+[m			[32m<?php do_action( 'bp_before_group_home_content' ) ?>[m
+[32m+[m
+[32m+[m			[32m<div id="item-header">[m
+[32m+[m				[32m<?php locate_template( array( 'groups/single/group-header.php' ), true ) ?>[m
+[32m+[m			[32m</div><!-- #item-header -->[m
+[32m+[m
+[32m+[m			[32m<div id="item-nav">[m
+[32m+[m				[32m<div class="item-list-tabs no-ajax" id="object-nav">[m
+[32m+[m					[32m<ul>[m
+[32m+[m						[32m<?php bp_get_options_nav() ?>[m
+[32m+[m
+[32m+[m						[32m<?php do_action( 'bp_group_options_nav' ) ?>[m
+[32m+[m					[32m</ul>[m
+[32m+[m				[32m</div>[m
+[32m+[m			[32m</div><!-- #item-nav -->[m
+[32m+[m			[32m<div id="item-body">[m
+[32m+[m			[32m<div id="subnav" class="item-list-tabs no-ajax">[m
+[32m+[m			[32m<ul>[m
+[32m+[m			[32m<?php bcg_get_options_menu();?>[m
+[32m+[m			[32m</ul>[m
+[32m+[m			[32m</div>[m
+[32m+[m			[32m<?php[m
+[32m+[m			[32mif(bcg_is_single_post())[m
+[32m+[m				[32mbcg_load_template('bcg/single-post.php' );[m
+[32m+[m			[32melse if(bcg_is_post_create())[m
+[32m+[m				[32mbcg_load_template('bcg/create.php' );[m
+[32m+[m			[32melse[m
+[32m+[m				[32mbcg_load_template( 'bcg/blog.php');[m
+[32m+[m			[32m?>[m
+[32m+[m			[32m</div>[m
+[32m+[m[41m			[m
+[32m+[m[41m			[m
+[32m+[m			[32m<?php do_action( 'bp_after_group_blog_home_content' ) ?>[m
+[32m+[m
+[32m+[m			[32m<?php endwhile; endif; ?>[m
+[32m+[m		[32m</div><!-- .padder -->[m
+[32m+[m	[32m</div><!-- #content -->[m
+[32m+[m
+[32m+[m	[32m<?php locate_template( array( 'sidebar.php' ), true ) ?>[m
+[32m+[m
+[32m+[m[32m<?php get_footer() ?>[m
+\ No newline at end of file[m
+[1mdiff --git a/wp-content/plugins/blog-categories-for-groups/bcg/readme.txt b/wp-content/plugins/blog-categories-for-groups/bcg/readme.txt[m
+[1mnew file mode 100644[m
+[1mindex 0000000..0ef481e[m
+[1m--- /dev/null[m
+[1m+++ b/wp-content/plugins/blog-categories-for-groups/bcg/readme.txt[m
+[36m@@ -0,0 +1,3 @@[m
+[32m+[m[32mPlease move my parent folder "bcg" to your current active theme to make us work. Thanks![m
+[32m+[m
+[32m+[m
+[1mdiff --git a/wp-content/plugins/blog-categories-for-groups/bcg/single-post.php b/wp-content/plugins/blog-categories-for-groups/bcg/single-post.php[m
+[1mnew file mode 100644[m
+[1mindex 0000000..f8980a2[m
+[1m--- /dev/null[m
+[1m+++ b/wp-content/plugins/blog-categories-for-groups/bcg/single-post.php[m
+[36m@@ -0,0 +1,48 @@[m
+[32m+[m
+[32m+[m[32m<?php[m[41m [m
+[32m+[m	[32m$q=new WP_Query(bcg_get_query());[m
+[32m+[m	[32mglobal $post;[m
+[32m+[m	[32mif ($q->have_posts() ) : ?>[m
+[32m+[m
+[32m+[m	[32m<?php do_action( 'bp_before_group_blog_post_content' ) ?>[m
+[32m+[m
+[32m+[m[41m	[m
+[32m+[m
+[32m+[m	[32m<?php[m[41m [m
+[32m+[m	[32mbcg_loop_start();//please do not remove it[m
+[32m+[m	[32mwhile($q->have_posts()):$q->the_post();?>[m
+[32m+[m	[32m<div class="post" id="post-<?php the_ID(); ?>">[m
+[32m+[m
+[32m+[m					[32m<div class="author-box">[m
+[32m+[m						[32m<?php echo get_avatar( get_the_author_meta( 'user_email' ), '50' ); ?>[m
+[32m+[m						[32m<p><?php printf( __( 'by %s', 'bcg' ), bp_core_get_userlink( $post->post_author ) ) ?></p>[m
+[32m+[m					[32m</div>[m
+[32m+[m
+[32m+[m					[32m<div class="post-content">[m
+[32m+[m						[32m<h2 class="posttitle"><a href="<?php echo bcg_get_post_permalink($post);?>" rel="bookmark" title="<?php _e( 'Permanent Link to', 'bcg' ) ?> <?php the_title_attribute(); ?>"><?php the_title(); ?></a></h2>[m
+[32m+[m
+[32m+[m						[32m<p class="date"><?php the_time() ?> <em><?php _e( 'in', 'bcg' ) ?> <?php the_category(', ') ?> <?php printf( __( 'by %s', 'bcg' ), bp_core_get_userlink( $post->post_author ) ) ?></em></p>[m
+[32m+[m
+[32m+[m						[32m<div class="entry">[m
+[32m+[m							[32m<?php the_content( __( 'Read the rest of this entry &rarr;', 'bcg' ) ); ?>[m
+[32m+[m
+[32m+[m							[32m<?php wp_link_pages(array('before' => __( '<p><strong>Pages:</strong> ', 'bcg' ), 'after' => '</p>', 'next_or_number' => 'number')); ?>[m
+[32m+[m						[32m</div>[m
+[32m+[m
+[32m+[m						[32m<p class="postmetadata"><span class="tags"><?php the_tags( __( 'Tags: ', 'bcg' ), ', ', '<br />'); ?></span> <span class="comments"><?php comments_popup_link( __( 'No Comments &#187;', 'bcg' ), __( '1 Comment &#187;', 'bcg' ), __( '% Comments &#187;', 'bcg' ) ); ?></span></p>[m
+[32m+[m					[32m</div>[m
+[32m+[m
+[32m+[m				[32m</div>[m
+[32m+[m				[32m<?php comments_template(); ?>[m
+[32m+[m[32m<?php endwhile;?>[m
+[32m+[m[32m<?php do_action( 'bp_after_group_blog_content' ) ;[m
+[32m+[m[32mbcg_loop_end();//please do not remove it[m
+[32m+[m[32m?>[m
+[32m+[m
+[32m+[m[32m<?php else: ?>[m
+[32m+[m
+[32m+[m	[32m<div id="message" class="info">[m
+[32m+[m		[32m<p><?php _e( 'This group has no Blog posts.', 'bcg' ); ?></p>[m
+[32m+[m	[32m</div>[m
+[32m+[m
+[32m+[m[32m<?php endif; ?>[m
+[1mdiff --git a/wp-content/plugins/blog-categories-for-groups/blog-catetgories-for-groups.php b/wp-content/plugins/blog-categories-for-groups/blog-catetgories-for-groups.php[m
+[1mnew file mode 100644[m
+[1mindex 0000000..d7e40fa[m
+[1m--- /dev/null[m
+[1m+++ b/wp-content/plugins/blog-categories-for-groups/blog-catetgories-for-groups.php[m
+[36m@@ -0,0 +1,211 @@[m
+[32m+[m[32m<?php[m
+[32m+[m[32m/*[m
+[32m+[m[32m * Plugin Name: Blog Categories for Groups[m
+[32m+[m[32m * Author: Brajesh Singh[m
+[32m+[m[32m * Plugin URI:http://buddydev.com/plugins/blog-categories-for-groups/[m
+[32m+[m[32m * Author URI:http://buddydev.com/members/sbrajesh/[m
+[32m+[m[32m * Description: Allow Group admins;/mods to associate blog categories with groups[m
+[32m+[m[32m * Version: 1.1[m
+[32m+[m[32m * Tested with WordPress 3.5.1+BuddyPress 1.7.2[m
+[32m+[m[32m * License: GPL[m
+[32m+[m[32m * Date: May 30, 2013[m
+[32m+[m[32m */[m
+[32m+[m
+[32m+[m[32m #hackunito[m
+[32m+[m[32mif(!defined('BCG_SLUG'))[m
+[32m+[m[32m    define('BCG_SLUG','category');[m
+[32m+[m
+[32m+[m[32mdefine('BCG_PLUGIN_DIR',  plugin_dir_path(__FILE__));[m
+[32m+[m[32m/**[m
+[32m+[m[32m * The blog categories for Groups helper class[m
+[32m+[m[32m * Loads the files and localizations[m
+[32m+[m[32m */[m
+[32m+[m[32mclass BCGroups_Helper{[m
+[32m+[m[41m    [m
+[32m+[m[32m    private static $instance;[m
+[32m+[m[41m    [m
+[32m+[m[32m    private function __construct(){[m
+[32m+[m[41m        [m
+[32m+[m[32m        add_action('bp_include',array($this,'load_extension'));[m
+[32m+[m[32m        //load javascript for comment reply[m
+[32m+[m[32m        add_action('bp_enqueue_scripts',array($this,'enqueue_script'));[m
+[32m+[m[32m        //load localization files[m
+[32m+[m[32m        add_action ( 'bp_init', array($this,'load_textdomain'), 2 );[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    public static function get_instance(){[m
+[32m+[m[32m        if( ! isset( self::$instance ) )[m
+[32m+[m[32m                self::$instance=new self();[m
+[32m+[m[32m        return self::$instance;[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    /**[m
+[32m+[m[32m     * Load required files[m
+[32m+[m[32m     */[m
+[32m+[m[32m    public function load_extension(){[m
+[32m+[m[32m        $files=array([m
+[32m+[m[32m            'bcg-functions.php',[m
+[32m+[m[32m            'template-tags.php',[m
+[32m+[m[32m            'bcg-hooks.php',[m
+[32m+[m[32m            'bcg-admin.php',[m
+[32m+[m[41m            [m
+[32m+[m[41m            [m
+[32m+[m[32m        );[m
+[32m+[m[41m        [m
+[32m+[m[32m        foreach($files as $file)[m
+[32m+[m[32m            include_once (BCG_PLUGIN_DIR.$file);[m
+[32m+[m
+[32m+[m[32m    }[m
+[32m+[m[32m    /**[m
+[32m+[m[32m     * Load localization files[m
+[32m+[m[32m     * e.g /languages/en_US.mo[m
+[32m+[m[32m     */[m
+[32m+[m[32m    function load_textdomain() {[m
+[32m+[m[32m        $locale = apply_filters( 'bcg_load_textdomain_get_locale', get_locale() );[m
+[32m+[m[32m        // if load .mo file[m
+[32m+[m[32m        if ( !empty( $locale ) ) {[m
+[32m+[m[32m            $mofile_default = sprintf( '%s/languages/%s.mo',BCG_PLUGIN_DIR, $locale );[m
+[32m+[m[32m            $mofile = apply_filters( 'bcg_load_mofile', $mofile_default );[m
+[32m+[m[32m            // make sure file exists, and load it[m
+[32m+[m[32m            if ( file_exists( $mofile ) ) {[m
+[32m+[m[32m                load_textdomain( 'bcg', $mofile );[m
+[32m+[m[32m            }[m
+[32m+[m[32m        }[m
+[32m+[m[32m    }[m
+[32m+[m[32m    /**[m
+[32m+[m[32m     * Enqueue comment js on single post screen[m
+[32m+[m[32m     */[m
+[32m+[m[32m    function enqueue_script(){[m
+[32m+[m[32m        if(bcg_is_single_post ())[m
+[32m+[m[32m            wp_enqueue_script ('comment-reply');[m
+[32m+[m
+[32m+[m[32m   }[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m//initialize[m
+[32m+[m[32mBCGroups_Helper::get_instance();[m
+[32m+[m
+[32m+[m
+[32m+[m
+[32m+[m[32mclass BCG_View_Helper{[m
+[32m+[m[41m [m
+[32m+[m[32m    private static $instance;[m
+[32m+[m[41m    [m
+[32m+[m[32m    private function __construct() {[m
+[32m+[m[41m        [m
+[32m+[m[32m        //setup nav[m
+[32m+[m[32m        add_action('groups_setup_nav',  array($this,'setup_nav'));[m
+[32m+[m[32m        add_action('bp_ready',          array($this,'screen_group_blog_single_post'),5);[m
+[32m+[m[32m        add_action('bp_init',           array($this,'register_form'));[m
+[32m+[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    public static function get_instance(){[m
+[32m+[m[41m        [m
+[32m+[m[32m        if(!isset (self::$instance))[m
+[32m+[m[32m                self::$instance = new self();[m
+[32m+[m[41m        [m
+[32m+[m[32m        return self::$instance;[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    //setup nav[m
+[32m+[m[32m    function setup_nav($current_user_access){[m
+[32m+[m[32m        global $bp;[m
+[32m+[m
+[32m+[m[32m        if(!bp_is_group())[m
+[32m+[m[32m            return;[m
+[32m+[m[41m        [m
+[32m+[m[32m        $group_id=bp_get_current_group_id();[m
+[32m+[m
+[32m+[m[32m        if(bcg_is_disabled($group_id))[m
+[32m+[m[32m            return;[m
+[32m+[m
+[32m+[m[32m        $current_group=groups_get_current_group();[m
+[32m+[m[41m        [m
+[32m+[m[32m        $group_link = bp_get_group_permalink($current_group);[m
+[32m+[m[41m        [m
+[32m+[m		[32m// #hackunito[m
+[32m+[m[32m        bp_core_new_subnav_item( array([m[41m [m
+[32m+[m[32m            'name' =>             __( 'Category', 'bcg' ),[m
+[32m+[m[32m            'slug' =>             BCG_SLUG,[m
+[32m+[m[32m            'parent_url' =>       $group_link,[m
+[32m+[m[32m            'parent_slug' =>      $current_group->slug,[m
+[32m+[m[32m            'screen_function' =>  array($this,'screen_group_blog'),[m
+[32m+[m[32m            'position' =>         10,[m
+[32m+[m[32m            'user_has_access' =>  $current_user_access,[m
+[32m+[m[32m            'item_css_id' =>      'category'[m
+[32m+[m[32m            ) );[m
+[32m+[m
+[32m+[m[32m    }[m
+[32m+[m[32m    /**[m
+[32m+[m[32m     * Register the simple front end post plugin[m
+[32m+[m[32m     */[m
+[32m+[m[32m    function register_form(){[m
+[32m+[m[41m       [m
+[32m+[m[32m        $group_id=bp_get_current_group_id();[m
+[32m+[m[32m        //register form if the BPDev PostEditor Exists[m
+[32m+[m[32m        if(function_exists('bp_new_simple_blog_post_form')){[m
+[32m+[m[32m            $form_params=array([m
+[32m+[m[32m                'post_type'=>'post',[m
+[32m+[m[32m                'post_author'=>  bp_loggedin_user_id(),[m
+[32m+[m[32m                'post_status'=>'draft',[m
+[32m+[m[32m                'current_user_can_post'=>  bcg_current_user_can_post(),[m
+[32m+[m[32m                'tax'=>array([m
+[32m+[m[32m                    'category'=>array([m
+[32m+[m[32m                        'include'=>bcg_get_categories($group_id),//selected cats,[m
+[32m+[m[32m                    )[m
+[32m+[m[32m                ),[m
+[32m+[m
+[32m+[m[32m            'show_tags'=>false,//current version does not support the tag[m
+[32m+[m
+[32m+[m[32m            'allowed_tags'=>array());[m
+[32m+[m[41m            [m
+[32m+[m[32m            $form=bp_new_simple_blog_post_form('bcg_form',apply_filters('bcg_form_args',$form_params));[m
+[32m+[m
+[32m+[m[32m        }[m
+[32m+[m[41m        [m
+[32m+[m[32m    }[m
+[32m+[m[32m    //load the blog home page for group[m
+[32m+[m[32m    function screen_group_blog(){[m
+[32m+[m[32m        //load template[m
+[32m+[m[32m        bp_core_load_template( apply_filters( 'groups_template_group_blog', 'bcg/home' ) );[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    //for single post screen[m
+[32m+[m[32m    function screen_group_blog_single_post(){[m
+[32m+[m[32m       global $bp;[m
+[32m+[m[41m       [m
+[32m+[m[32m       if(function_exists('bp_is_group')&&!bp_is_group())[m
+[32m+[m[32m          return;[m
+[32m+[m[41m       [m
+[32m+[m[32m        //do not catch the request for creating new post[m
+[32m+[m[32m       if(bp_is_action_variable('create',0))[m
+[32m+[m[32m               return;[m
+[32m+[m[41m       [m
+[32m+[m[32m       $current_group=groups_get_current_group();[m
+[32m+[m[41m       [m
+[32m+[m[32m       if(bcg_is_disabled($current_group->id))[m
+[32m+[m[32m               return;[m
+[32m+[m[32m       //if the group is private/hidden and user is not member, return[m
+[32m+[m[32m       if(($current_group->status=='private'||$current_group->status=='hidden')&&(!is_user_logged_in()||!groups_is_user_member(bp_loggedin_user_id(), $current_group->id)))[m
+[32m+[m[32m       return;//avoid prioivacy troubles[m
+[32m+[m
+[32m+[m[32m       if (bp_is_groups_component() && bp_is_current_action(BCG_SLUG) &&!empty($bp->action_variables[0]) ){[m
+[32m+[m
+[32m+[m[32m           $wpq=new WP_Query(bcg_get_query());[m
+[32m+[m[32m            if($wpq->have_posts()){[m
+[32m+[m[32m                //load template[m
+[32m+[m[32m             bp_core_load_template( apply_filters( 'groups_template_group_blog_single_post', 'bcg/home' ) );[m
+[32m+[m[32m            }[m
+[32m+[m[32m        else[m
+[32m+[m[32m            bp_core_add_message (__("Sorry, the post does not exists!","bcg"),"error");[m
+[32m+[m
+[32m+[m[32m       }[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[41m    [m
+[32m+[m[41m    [m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mBCG_View_Helper::get_instance();[m
+[32m+[m
+[1mdiff --git a/wp-content/plugins/blog-categories-for-groups/template-tags.php b/wp-content/plugins/blog-categories-for-groups/template-tags.php[m
+[1mnew file mode 100644[m
+[1mindex 0000000..fa353c6[m
+[1m--- /dev/null[m
+[1m+++ b/wp-content/plugins/blog-categories-for-groups/template-tags.php[m
+[36m@@ -0,0 +1,194 @@[m
+[32m+[m[32m<?php[m
+[32m+[m[32m/*[m
+[32m+[m[32m * Template Tags for Blog categories[m
+[32m+[m[32m *[m
+[32m+[m[32m */[m
+[32m+[m
+[32m+[m[32m//if inside the post loop[m
+[32m+[m[32mfunction in_bcg_loop(){[m
+[32m+[m[32m    global $bp;[m
+[32m+[m
+[32m+[m[32m    return isset($bp->bcg)? $bp->bcg->in_the_loop:false;[m
+[32m+[m[32m}[m
+[32m+[m[32m//use it to mark t5he start of bcg post loop[m
+[32m+[m[32mfunction bcg_loop_start(){[m
+[32m+[m[32m    global $bp;[m
+[32m+[m[32m    $bp->bcg=new stdClass();[m
+[32m+[m[32m    $bp->bcg->in_the_loop=true;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m//use it to mark the end of bcg loop[m
+[32m+[m[32mfunction bcg_loop_end(){[m
+[32m+[m[32m    global $bp;[m
+[32m+[m[41m    [m
+[32m+[m[32m    $bp->bcg->in_the_loop=false;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m
+[32m+[m[32m//get post permalink which leads to group blog single post page[m
+[32m+[m[32mfunction bcg_get_post_permalink($post){[m
+[32m+[m[41m    [m
+[32m+[m[32m     return bp_get_group_permalink(groups_get_current_group()).BCG_SLUG."/".$post->post_name;[m
+[32m+[m[32m}[m
+[32m+[m[32m/**[m
+[32m+[m[32m * Generate Pagination Link for posts[m
+[32m+[m[32m * @param type $q[m[41m [m
+[32m+[m[32m */[m
+[32m+[m[32mfunction bcg_pagination($q) {[m
+[32m+[m
+[32m+[m		[32m$posts_per_page = intval(get_query_var('posts_per_page'));[m
+[32m+[m		[32m$paged = intval(get_query_var('paged'));[m
+[32m+[m		[32m$numposts = $q->found_posts;[m
+[32m+[m[32m                $max_page = $q->max_num_pages;[m
+[32m+[m		[32mif(empty($paged) || $paged == 0) {[m
+[32m+[m			[32m$paged = 1;[m
+[32m+[m		[32m}[m
+[32m+[m
+[32m+[m[32m         $pag_links = paginate_links( array([m
+[32m+[m[32m                'base' => add_query_arg( array( 'paged' => '%#%', 'num' => $posts_per_page ) ),[m
+[32m+[m[32m                'format' => '',[m
+[32m+[m[32m                'total' => ceil($numposts / $posts_per_page),[m
+[32m+[m[32m                'current' => $paged,[m
+[32m+[m[32m                'prev_text' => '&larr;',[m
+[32m+[m[32m                'next_text' => '&rarr;',[m
+[32m+[m[32m                'mid_size' => 1[m
+[32m+[m[32m            ));[m
+[32m+[m[32m    echo $pag_links;[m
+[32m+[m[32m}[m
+[32m+[m[32m//viewing x of z posts[m
+[32m+[m[32mfunction bcg_posts_pagination_count($q){[m
+[32m+[m
+[32m+[m		[32m$posts_per_page = intval(get_query_var('posts_per_page'));[m
+[32m+[m		[32m$paged = intval(get_query_var('paged'));[m
+[32m+[m		[32m$numposts = $q->found_posts;[m
+[32m+[m[32m        $max_page = $q->max_num_pages;[m
+[32m+[m		[32mif(empty($paged) || $paged == 0) {[m
+[32m+[m			[32m$paged = 1;[m
+[32m+[m		[32m}[m
+[32m+[m
+[32m+[m[32m       $start_num = intval( $posts_per_page*($paged-1) ) + 1;[m
+[32m+[m[32m       $from_num = bp_core_number_format( $start_num );[m
+[32m+[m[32m       $to_num = bp_core_number_format( ( $start_num + ( $posts_per_page - 1 ) > $numposts ) ? $numposts : $start_num + ( $posts_per_page - 1 ) );[m
+[32m+[m[32m       $total = bp_core_number_format( $numposts );[m
+[32m+[m
+[32m+[m[32m        printf( __( 'Viewing posts %1$s to %2$s (of %3$s posts)', 'bcg' ), $from_num, $to_num, $total )."&nbsp;";[m
+[32m+[m[41m        [m
+[32m+[m[32m        if(bcg_is_category())[m
+[32m+[m[32m           printf(__("In the category %s ","bcg"), "<span class='bcg-cat-name'>". get_cat_name ($q->query_vars['cat'])."</span>");?>[m
+[32m+[m	[32m<span class="ajax-loader"></span><?php[m
+[32m+[m[32m}[m
+[32m+[m[32m/**[m
+[32m+[m[32m * Are we dealing with blog categories pages?[m
+[32m+[m[32m * @return type[m[41m [m
+[32m+[m[32m */[m
+[32m+[m[32mfunction bcg_is_component(){[m
+[32m+[m[32m    global $bp;[m
+[32m+[m[32m    if (bp_is_current_component($bp->groups->slug) && bp_is_current_action(BCG_SLUG ))[m
+[32m+[m[32m        return true;[m
+[32m+[m[41m    [m
+[32m+[m[32m    return false;[m
+[32m+[m[32m}[m
+[32m+[m[32mfunction bcg_is_single_post(){[m
+[32m+[m[32m    global $bp;[m
+[32m+[m[32m    if (bcg_is_component() &&!empty($bp->action_variables[0])&&(!in_array($bp->action_variables[0],array('create','category' ))))[m
+[32m+[m[32m         return true;[m
+[32m+[m
+[32m+[m[32m}[m
+[32m+[m[32m//is bcg_home[m
+[32m+[m[32mfunction bcg_is_home(){[m
+[32m+[m[32m    global $bp;[m
+[32m+[m[32m    if (bcg_is_component() &&empty($bp->action_variables[0]) )[m
+[32m+[m[32m         return true;[m
+[32m+[m
+[32m+[m[32m}[m
+[32m+[m[32mfunction is_bcg_pages(){[m
+[32m+[m[32m   return bcg_is_component();[m
+[32m+[m[32m}[m
+[32m+[m[32mfunction bcg_is_post_create(){[m
+[32m+[m[32m    global $bp;[m
+[32m+[m[32m    if (bcg_is_component() &&!empty($bp->action_variables[0])&&$bp->action_variables[0]=='create' )[m
+[32m+[m[32m         return true;[m
+[32m+[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mfunction bcg_is_category(){[m
+[32m+[m[32m    global $bp;[m
+[32m+[m[32m    if ( bcg_is_component() &&!empty($bp->action_variables[1])&&$bp->action_variables[0]=='category' )[m
+[32m+[m[32m         return true;[m
+[32m+[m[32m}[m
+[32m+[m[32m//sub menu[m
+[32m+[m[32mfunction bcg_get_options_menu(){?>[m
+[32m+[m[32m    <li <?php if(bcg_is_home ()):?> class="current"<?php endif;?>><a href="<?php echo bcg_get_home_url();?>"><?php _e("Posts","bcg");?></a></li>[m
+[32m+[m[32m    <?php if(bcg_current_user_can_post()):?>[m
+[32m+[m[32m        <li <?php if(bcg_is_post_create()):?> class="current"<?php endif;?>><a href="<?php echo bcg_get_home_url();?>/create"><?php _e("Create New Post","bcg");?></a></li>[m
+[32m+[m[32m  <?php endif;?>[m
+[32m+[m[32m <?php[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m
+[32m+[m[32m//form for showing category lists[m
+[32m+[m[32mfunction bcg_admin_form(){[m
+[32m+[m[32m    $group_id=bp_get_group_id();[m
+[32m+[m
+[32m+[m[32m    $selected_cats=bcg_get_categories($group_id);[m
+[32m+[m[32m    echo "<p>".__("Check a category to assopciate the posts in this category with this group.","bcg")."</p>";[m
+[32m+[m
+[32m+[m[32m    $cat_ids=get_all_category_ids();[m
+[32m+[m[32m    if(is_array($cat_ids)){////it is sure but do not take risk[m
+[32m+[m[32m            foreach($cat_ids as $cat_id){//show the form[m
+[32m+[m[32m                $checked=0;[m
+[32m+[m	[32mif(!empty($selected_cats)&&in_array($cat_id,$selected_cats))[m
+[32m+[m			[32m$checked=true;[m
+[32m+[m	[32m?>[m
+[32m+[m	[32m<label  style="padding:5px;display:block;float:left;">[m
+[32m+[m[32m        <input type="checkbox" name="blog_cats[]" id="<?php $opt_id;?>" value="<?php echo $cat_id;?>" <?php if($checked) echo "checked='checked'" ;?>/>[m
+[32m+[m[32m        <?php echo get_cat_name($cat_id);?>[m
+[32m+[m	[32m</label>[m
+[32m+[m
+[32m+[m[32m<?php[m
+[32m+[m[32m   }[m
+[32m+[m[32m}[m
+[32m+[m[32m  else{[m
+[32m+[m[32m      ?>[m
+[32m+[m
+[32m+[m[32m    <div class="error">[m
+[32m+[m[32m        <p><?php _e("Please create the categories first to attach them to a group.","bcg");?></p>[m
+[32m+[m[32m    </div>[m
+[32m+[m[32m<?php[m
+[32m+[m[32m     }[m
+[32m+[m[32m?>[m
+[32m+[m[32m    <div class="clear"></div>[m
+[32m+[m
+[32m+[m[32m<?php[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m
+[32m+[m
+[32m+[m
+[32m+[m[32m//post form if one quick pot is installed[m
+[32m+[m[32mfunction bcg_get_post_form($group_id){[m
+[32m+[m[32m    global $bp;[m
+[32m+[m[32m    $cat_selected=bcg_get_categories($group_id);//selected cats[m
+[32m+[m[32m    if(empty($cat_selected)){[m
+[32m+[m[32m             _e('This group has no associated categories. To post to Group blog, you need to associate some categoris to it.','bcg');[m
+[32m+[m[32m            return;[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m    $all_cats=get_all_category_ids();[m
+[32m+[m[32m    $cats=array_diff($all_cats,$cat_selected);[m
+[32m+[m[41m    [m
+[32m+[m
+[32m+[m[32m    //for form[m
+[32m+[m[32m    $url=bp_get_group_permalink(new BP_Groups_Group($group_id)).BCG_SLUG."/create/";[m
+[32m+[m[32m    if(function_exists('bp_get_simple_blog_post_form')){[m
+[32m+[m[41m        [m
+[32m+[m[32m       $form=bp_get_simple_blog_post_form('bcg_form');[m
+[32m+[m[32m        if($form)[m
+[32m+[m[32m            $form->show();[m
+[32m+[m[41m        [m
+[32m+[m[32m    }[m
+[32m+[m[41m  [m
+[32m+[m[32m    do_action('bcg_post_form',$cats,$url);//pass the categories as array and the url of the current page[m
+[32m+[m[41m    [m
+[32m+[m[32m}[m
+[32m+[m
+[1mdiff --git a/wp-content/plugins/bp-group-acivities-notifier/bp-group-activities-notifier.php b/wp-content/plugins/bp-group-acivities-notifier/bp-group-activities-notifier.php[m
+[1mnew file mode 100644[m
+[1mindex 0000000..1f054d1[m
+[1m--- /dev/null[m
+[1m+++ b/wp-content/plugins/bp-group-acivities-notifier/bp-group-activities-notifier.php[m
+[36m@@ -0,0 +1,354 @@[m
+[32m+[m[32m<?php[m
+[32m+[m
+[32m+[m[32m/**[m
+[32m+[m[32m * Plugin Name: BP Group Activities Notifier[m
+[32m+[m[32m * Plugin URI: http://buddydev.com/plugins/bp-group-activities-notifier/[m
+[32m+[m[32m * Author: Brajesh Singh(BuddyDev)[m
+[32m+[m[32m * Author URI: http://buddydev.com/members/sbrajesh/[m
+[32m+[m[32m * Version: 1.0[m
+[32m+[m[32m * Description: Notifies on any action in the group to all group members. I have tested with group join, group post update, forum post/reply. Sould work with others too[m
+[32m+[m[32m */[m
+[32m+[m
+[32m+[m[32m//load the component[m
+[32m+[m[32madd_action('bp_include','bp_local_group_notifier_load');[m
+[32m+[m
+[32m+[m[32mfunction bp_local_group_notifier_load(){[m
+[32m+[m[32m    //we need a dummy component[m
+[32m+[m[32m    include_once (plugin_dir_path(__FILE__).'loader.php');[m
+[32m+[m[41m    [m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mclass BPLocalGroupNotifierHelper{[m
+[32m+[m[41m    [m
+[32m+[m[32m    private static $instance;[m
+[32m+[m
+[32m+[m[32m    private function __construct() {[m
+[32m+[m[32m        //notify members on new activity[m
+[32m+[m[32m        add_action('bp_activity_add',array($this,'notify_members'));[m
+[32m+[m[32m        //delete notification when viewing single activity[m
+[32m+[m[32m        add_action('bp_activity_screen_single_activity_permalink', array($this,'delete_on_single_activity'),10,2);[m
+[32m+[m[32m        //sniff and delete notification for forum topic/replies[m
+[32m+[m[32m        add_action('bp_init',array($this,'delete_for_group_forums'),20);[m
+[32m+[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[41m    [m
+[32m+[m[32m    public static function get_instance(){[m
+[32m+[m[32m        if(!isset(self::$instance))[m
+[32m+[m[32m           self::$instance= new self();[m
+[32m+[m[41m        [m
+[32m+[m[32m        return self::$instance;[m
+[32m+[m[41m        [m
+[32m+[m[32m    }[m
+[32m+[m[32m   /**[m
+[32m+[m[32m    * Notifies Users of new Group activity[m
+[32m+[m[32m    *[m[41m [m
+[32m+[m[32m    * should we put an options in the notifications page of user to allow them opt out ?[m
+[32m+[m[32m    *[m[41m [m
+[32m+[m[32m    * @global type $bp[m
+[32m+[m[32m    * @param type $params[m
+[32m+[m[32m    * @return type[m
+[32m+[m[32m    */[m
+[32m+[m[32m    function notify_members($params){[m
+[32m+[m[32m        global $bp;[m
+[32m+[m[41m [m
+[32m+[m[32m        //first we need to check if this is a group activity[m
+[32m+[m[32m        if($params['component']!=$bp->groups->id)[m
+[32m+[m[32m            return ;[m
+[32m+[m
+[32m+[m[32m        //now, find that activity[m
+[32m+[m[32m        $activity_id= bp_activity_get_activity_id($params);[m
+[32m+[m
+[32m+[m[32m        if(empty($activity_id))[m
+[32m+[m[32m            return;[m
+[32m+[m[41m      [m
+[32m+[m[32m        //we found it, good![m[41m [m
+[32m+[m[32m        $activity= new BP_Activity_Activity($activity_id);[m
+[32m+[m[32m        //ok this is infact the group id[m
+[32m+[m[32m        //I am not sure about 3rd party plugins, but bbpress, buddypress adds group activities like this[m
+[32m+[m[32m        $group_id=$activity->item_id;[m
+[32m+[m[41m       [m
+[32m+[m[32m        //let us fetch all members data for the group except the banned users[m
+[32m+[m[32m        $members_data=  BP_Groups_Member::get_all_for_group( $group_id, false,false,false );//include admin/mod[m
+[32m+[m[41m        [m
+[32m+[m[32m        //ok let us fetch the members list[m
+[32m+[m[32m        $members=$members_data['members'];[m
+[32m+[m
+[32m+[m[32m        //and we will add a notification for each user[m
+[32m+[m[32m        foreach((array)$members as $member){[m
+[32m+[m[32m            if($member->user_id==$activity->user_id)[m
+[32m+[m[32m                 continue;//but not for the current logged user who performed this action[m
+[32m+[m
+[32m+[m[32m            //we need to make each notification unique, otherwise bp will group it[m
+[32m+[m[32m             self::add_notification($group_id, $member->user_id, 'localgroupnotifier', 'group_local_notification_'.$activity_id, $activity_id);[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m
+[32m+[m[32m    /**[m
+[32m+[m[32m     * Delete notification for user when he views single activity[m
+[32m+[m[32m     */[m
+[32m+[m[32m    function delete_on_single_activity($activity, $has_access){[m
+[32m+[m[32m        if(!is_user_logged_in())[m
+[32m+[m[32m            return;[m
+[32m+[m
+[32m+[m[32m        if(!$has_access)[m
+[32m+[m[32m           return ;[m
+[32m+[m
+[32m+[m[32m        BP_Core_Notification::delete_for_user_by_item_id(get_current_user_id(), $activity->item_id, 'localgroupnotifier','group_local_notification_'.$activity->id, $activity->id);[m
+[32m+[m[41m    [m
+[32m+[m[32m    }[m
+[32m+[m[32m    /**[m
+[32m+[m[32m     * Delet the notifications for New topic/ Topic replies if viewing the topic/topic replies[m
+[32m+[m[32m     *[m[41m [m
+[32m+[m[32m     * I am supporting bbpress 2.3+ plugin and not standalone bbpress which comes with BP 1.6[m
+[32m+[m[32m     *[m[41m [m
+[32m+[m[32m     *[m[41m [m
+[32m+[m[32m     * @global type $wpdb[m
+[32m+[m[32m     * @return type[m
+[32m+[m[32m     */[m
+[32m+[m[41m    [m
+[32m+[m[32m    function delete_for_group_forums(){[m
+[32m+[m[32m        if(!is_user_logged_in()||!function_exists('bbpress'))//just make sure we are doing it for bbpress plugin[m
+[32m+[m[32m            return;[m
+[32m+[m[41m        [m
+[32m+[m[32m        //the identfication of notification for forum topic/reply is taxing operation[m
+[32m+[m[32m        //so, we need to make sure we don't abuse t[m
+[32m+[m[32m        if ( bp_is_single_item() && bp_is_groups_component() && bp_is_current_action( 'forum' )&&  bp_is_action_variable('topic') ){[m
+[32m+[m[32m            //we are on single topic page[m
+[32m+[m[32m            //[m
+[32m+[m[32m            //bailout if user has no notification related to group[m
+[32m+[m
+[32m+[m[32m            if(!self::notification_exists([m
+[32m+[m[32m                    array([m
+[32m+[m[32m                        'item_id'=>  bp_get_current_group_id(),//the group id[m
+[32m+[m[32m                        'component'=>'localgroupnotifier',[m
+[32m+[m[32m                        'user_id'=>  get_current_user_id()[m
+[32m+[m[32m                     ))[m
+[32m+[m[32m              )[m
+[32m+[m[32m             return;[m
+[32m+[m
+[32m+[m[32m            //so, the current user has group notifications, now let us see if they belong to this topic[m
+[32m+[m[41m           [m
+[32m+[m[41m                [m
+[32m+[m[32m                //Identify the topic[m
+[32m+[m[32m                // Get topic data[m
+[32m+[m				[32m$topic_slug = bp_action_variable( 1 );[m
+[32m+[m[32m                $post_status = array( bbp_get_closed_status_id(), bbp_get_public_status_id() );[m
+[32m+[m				[32m$topic_args = array( 'name' => $topic_slug, 'post_type' => bbp_get_topic_post_type(), 'post_status' => $post_status );[m
+[32m+[m				[32m$topics     = get_posts( $topic_args );[m
+[32m+[m
+[32m+[m				[32m// Does this topic exists?[m
+[32m+[m				[32mif ( !empty( $topics ) )[m[41m [m
+[32m+[m					[32m$topic = $topics[0];[m
+[32m+[m
+[32m+[m[32m                if(empty($topic))[m
+[32m+[m[32m                    return;//if not, let us return[m
+[32m+[m[41m                [m
+[32m+[m[41m  [m
+[32m+[m[32m                //since we are here, the topic exists[m
+[32m+[m[32m                //let us find all the replies for this topic[m
+[32m+[m[32m                // Default query args[m
+[32m+[m[32m                $default = array([m
+[32m+[m[32m                    'post_type'      => bbp_get_reply_post_type(), // Only replies[m
+[32m+[m[32m                    'post_parent'    => $topic->ID, // Of this topic[m
+[32m+[m[32m                    'posts_per_page' => -1, // all[m
+[32m+[m[32m                    'paged'          =>false,[m[41m [m
+[32m+[m[32m                    'orderby'        => 'date',[m
+[32m+[m[32m                    'order'          => 'ASC' ,[m
+[32m+[m[32m                    'post_status'    =>'any'[m[41m   [m
+[32m+[m[41m           [m
+[32m+[m
+[32m+[m[32m                );[m
+[32m+[m[41m  [m
+[32m+[m[32m            global $wpdb;[m
+[32m+[m[41m                [m
+[32m+[m[32m            $reply_ids=array();[m
+[32m+[m[41m            [m
+[32m+[m[32m            $replies=  get_posts($default);[m
+[32m+[m[41m            [m
+[32m+[m[32m            //pluck the reply ids[m
+[32m+[m[32m            if(!empty($replies))[m
+[32m+[m[32m                $reply_ids=  wp_list_pluck ($replies, 'ID');[m
+[32m+[m[41m            [m
+[32m+[m[32m            //since reply/topic are just post type, let us include the ID of the topic too in the list[m
+[32m+[m[41m            [m
+[32m+[m[32m            $reply_ids[]=$topic->ID;//put topic id in the list too[m
+[32m+[m[32m            $list='('.join(',',$reply_ids).')';[m
+[32m+[m
+[32m+[m[32m            //find the activity ids associated with these topic/replies[m
+[32m+[m[32m            $activity_ids=$wpdb->get_col($wpdb->prepare("SELECT meta_value AS id FROM {$wpdb->postmeta} WHERE meta_key=%s AND post_id IN {$list}",'_bbp_activity_id'));[m
+[32m+[m
+[32m+[m[32m            //now, we will need to fetch the activities for these activity ids[m
+[32m+[m[32m            $activities = bp_activity_get_specific( array( 'activity_ids' => $activity_ids, 'show_hidden' => true, 'spam' => 'all', ) );[m
+[32m+[m[41m            [m
+[32m+[m[32m            //ok, we do have these activities[m
+[32m+[m[32m            if($activities['total']>0)[m
+[32m+[m[32m                $activities=$activities['activities'];[m
+[32m+[m[41m            [m
+[32m+[m[32m            //this is the logged in user for whom we are trying to delete notification[m
+[32m+[m[41m            [m
+[32m+[m[32m            $current_user=get_current_user_id();[m
+[32m+[m
+[32m+[m[32m            foreach((array)$activities as $activity){[m
+[32m+[m[32m                //delete now[m
+[32m+[m
+[32m+[m[32m                 BP_Core_Notification::delete_for_user_by_item_id($current_user, $activity->item_id, 'localgroupnotifier','group_local_notification_'.$activity->id, $activity->id);[m
+[32m+[m
+[32m+[m[32m            }[m
+[32m+[m[41m                [m
+[32m+[m[41m        [m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m  }[m
+[32m+[m[41m    [m
+[32m+[m[32m    /**[m
+[32m+[m[32m     * Adds a notification to the user[m
+[32m+[m[32m     *[m[41m [m
+[32m+[m[32m     * I am not using bp_core_add_notification as the forum component was mis behaving and we were getting two notifications added for the same activity[m
+[32m+[m[32m     * It checks if there exists a notification for activity, if not, It adds that notification for user[m
+[32m+[m[32m     *[m[41m [m
+[32m+[m[32m     * @param type $item_id[m
+[32m+[m[32m     * @param type $user_id[m
+[32m+[m[32m     * @param type $component_name[m
+[32m+[m[32m     * @param type $component_action[m
+[32m+[m[32m     * @param type $secondary_item_id[m
+[32m+[m[32m     * @param type $date_notified[m
+[32m+[m[32m     * @return boolean[m
+[32m+[m[32m     */[m
+[32m+[m[32m    function add_notification( $item_id, $user_id, $component_name, $component_action, $secondary_item_id = 0, $date_notified = false ) {[m
+[32m+[m
+[32m+[m[32m            if(self::notification_exists(array([m
+[32m+[m[32m               'item_id'=>$item_id,[m
+[32m+[m[32m               'component'=>$component_name,[m
+[32m+[m[32m               'action'=>$component_action,[m
+[32m+[m[32m               'secondary_item_id'=>$secondary_item_id,[m
+[32m+[m[32m               'user_id'=>$user_id[m
+[32m+[m
+[32m+[m[32m               )))[m
+[32m+[m[32m             return ;[m
+[32m+[m[41m    [m
+[32m+[m[32m            if ( empty( $date_notified ) )[m
+[32m+[m[32m               $date_notified = bp_core_current_time();[m
+[32m+[m[32m            //check if a notification already exists[m
+[32m+[m
+[32m+[m[32m            $notification                   = new BP_Core_Notification;[m
+[32m+[m[32m            $notification->item_id          = $item_id;[m
+[32m+[m[32m            $notification->user_id          = $user_id;[m
+[32m+[m[32m            $notification->component_name   = $component_name;[m
+[32m+[m[32m            $notification->component_action = $component_action;[m
+[32m+[m[32m            $notification->date_notified    = $date_notified;[m
+[32m+[m[32m            $notification->is_new           = 1;[m
+[32m+[m
+[32m+[m[32m            if ( !empty( $secondary_item_id ) )[m
+[32m+[m[32m                $notification->secondary_item_id = $secondary_item_id;[m
+[32m+[m
+[32m+[m[32m            if ( $notification->save() )[m
+[32m+[m[32m                return true;[m
+[32m+[m
+[32m+[m[32m            return false;[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    /**[m
+[32m+[m[32m     * Check if a notification exists[m
+[32m+[m[32m     *[m[41m [m
+[32m+[m[32m     * @global type $bp[m
+[32m+[m[32m     * @global type $wpdb[m
+[32m+[m[32m     * @param array $args[m
+[32m+[m[32m     * @return type[m
+[32m+[m[32m     */[m
+[32m+[m[32m    function notification_exists($args='' ){[m
+[32m+[m[41m        [m
+[32m+[m[32m        global $bp,$wpdb;[m
+[32m+[m[41m        [m
+[32m+[m[32m        $args=  wp_parse_args($args,array([m
+[32m+[m[32m                    'user_id'=>false,[m
+[32m+[m[32m                    'item_id'=>false,[m
+[32m+[m[32m                    'component'=>false,[m
+[32m+[m[32m                    'action'=>false,[m
+[32m+[m[32m                    'secondary_item_id'=>false[m
+[32m+[m[32m                ));[m
+[32m+[m[41m        [m
+[32m+[m[32m        extract($args);[m
+[32m+[m
+[32m+[m[32m        $query="SELECT id FROM {$bp->core->table_name_notifications} ";[m
+[32m+[m
+[32m+[m[32m        $where=array();[m
+[32m+[m
+[32m+[m[32m        if($user_id)[m
+[32m+[m[32m            $where[]=$wpdb->prepare("user_id=%d",$user_id);[m
+[32m+[m
+[32m+[m[32m        if($item_id)[m
+[32m+[m[32m            $where[]=$wpdb->prepare("item_id=%d",$item_id);[m
+[32m+[m
+[32m+[m[32m        if($component)[m
+[32m+[m[32m            $where[]=$wpdb->prepare("component_name=%s",$component);[m
+[32m+[m
+[32m+[m[32m        if($action)[m
+[32m+[m[32m            $where[]=$wpdb->prepare("component_action=%s",$action);[m
+[32m+[m[32m        if($secondary_item_id)[m
+[32m+[m[32m            $where[]=$wpdb->prepare("secondary_item_id=%d",$secondary_item_id);[m
+[32m+[m
+[32m+[m
+[32m+[m[32m        $where_sql=  join(" AND ", $where);[m
+[32m+[m[41m       [m
+[32m+[m[32m        return $wpdb->get_var($query." WHERE {$where_sql}");[m
+[32m+[m[41m    [m
+[32m+[m[32m    }[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m
+[32m+[m
+[32m+[m[32m//instantiate[m
+[32m+[m[32mBPLocalGroupNotifierHelper::get_instance();[m
+[32m+[m
+[32m+[m[41m    [m
+[32m+[m
+[32m+[m[32m    /**[m
+[32m+[m[32m    * Just formats the notification[m
+[32m+[m[32m    *[m[41m [m
+[32m+[m[32m    * @param type $action[m
+[32m+[m[32m    * @param type $item_id[m
+[32m+[m[32m    * @param type $secondary_item_id[m
+[32m+[m[32m    * @param type $total_items[m
+[32m+[m[32m    * @param type $format[m
+[32m+[m[32m    * @return type[m
+[32m+[m[32m    */[m
+[32m+[m
+[32m+[m[32m   function bp_local_group_notifier_format_notifications($action, $item_id, $secondary_item_id, $total_items, $format = 'string'){[m
+[32m+[m
+[32m+[m[32m       $group_id=$item_id;[m[41m [m
+[32m+[m[32m       $group = groups_get_group( array( 'group_id' => $group_id ) );[m
+[32m+[m[32m       $group_link = bp_get_group_permalink( $group );[m[41m [m
+[32m+[m
+[32m+[m[32m       if ( (int) $total_items > 1 ) {[m
+[32m+[m[32m                    $text = sprintf( __( '%1$d new activities in the group "%2$s"', 'bp-local-group-notifier' ), (int) $total_items, $group->name );[m
+[32m+[m
+[32m+[m[32m                    if ( 'string' == $format ) {[m
+[32m+[m[32m                        return '<a href="' . $group_link . '" title="' . __( 'New group Activities', 'bp-local-group-notifier' ) . '">' . $text . '</a>';[m
+[32m+[m[32m                    } else {[m
+[32m+[m[32m                        return array([m
+[32m+[m[32m                            'link' => $group_link,[m
+[32m+[m[32m                            'text' => $text[m
+[32m+[m[32m                        );[m
+[32m+[m[32m                    }[m
+[32m+[m[32m        } else {[m
+[32m+[m[32m                    $activity= new BP_Activity_Activity($secondary_item_id);[m
+[32m+[m
+[32m+[m[32m                    $text = strip_tags($activity->action);//here is the hack, think about it :)[m
+[32m+[m
+[32m+[m[32m                    $notification_link = bp_activity_get_permalink( $activity->id, $activity );[m
+[32m+[m
+[32m+[m[32m                    if ( 'string' == $format ) {[m
+[32m+[m[32m                        return '<a href="' . $notification_link . '" title="' .$text . '">' . $text . '</a>';[m
+[32m+[m[32m                        } else {[m
+[32m+[m[32m                        return array([m
+[32m+[m[32m                            'link' => $notification_link,[m
+[32m+[m[32m                            'text' => $text[m
+[32m+[m[32m                        );[m
+[32m+[m[32m                    }[m
+[32m+[m[32m                }[m[41m [m
+[32m+[m[32m    }[m
+[32m+[m[32m?>[m
+[1mdiff --git a/wp-content/plugins/bp-group-acivities-notifier/loader.php b/wp-content/plugins/bp-group-acivities-notifier/loader.php[m
+[1mnew file mode 100644[m
+[1mindex 0000000..d33d2ef[m
+[1m--- /dev/null[m
+[1m+++ b/wp-content/plugins/bp-group-acivities-notifier/loader.php[m
+[36m@@ -0,0 +1,55 @@[m
+[32m+[m[32m<?php[m
+[32m+[m[32m//we need a dummy component for manipulating notifications[m
+[32m+[m[32mclass BPLocalGroupNotifier extends BP_Component{[m
+[32m+[m[41m    [m
+[32m+[m[32m    function __construct() {[m
+[32m+[m[32m        global $bp;[m
+[32m+[m		[32mparent::start([m
+[32m+[m			[32m'localgroupnotifier',[m
+[32m+[m			[32m__( 'Local Group Notifier', 'bp-local-group-notifier' ),[m
+[32m+[m[32m            plugin_dir_path(__FILE__)[m
+[32m+[m		[32m);[m
+[32m+[m[32m         $bp->active_components[$this->id] = 1;[m
+[32m+[m	[32m}[m
+[32m+[m[41m    [m
+[32m+[m[41m    [m
+[32m+[m[32m    function includes(){[m
+[32m+[m[41m        [m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    function setup_globals() {[m
+[32m+[m		[32mglobal $bp;[m
+[32m+[m
+[32m+[m[41m		[m
+[32m+[m
+[32m+[m[32m        $helper=BPLocalGroupNotifierHelper::get_instance();[m
+[32m+[m		[32m// All globals for messaging component.[m
+[32m+[m		[32m// Note that global_tables is included in this array.[m
+[32m+[m		[32m$globals = array([m
+[32m+[m			[32m'slug'                  => $this->id,[m
+[32m+[m			[32m'root_slug'             => false,[m
+[32m+[m			[32m'has_directory'         => false,[m
+[32m+[m			[32m'notification_callback' => 'bp_local_group_notifier_format_notifications' ,//Bp cuirrently does not support object method callbacks her[m
+[32m+[m			[32m'global_tables'         => false[m
+[32m+[m		[32m);[m
+[32m+[m
+[32m+[m		[32mparent::setup_globals( $globals );[m
+[32m+[m[41m        [m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[41m    [m
+[32m+[m[41m    [m
+[32m+[m[41m    [m
+[32m+[m[32m}[m
+[32m+[m[41m    [m
+[32m+[m
+[32m+[m
+[32m+[m
+[32m+[m[32m function bp_setup_local_group_notifier() {[m
+[32m+[m	[32mglobal $bp;[m
+[32m+[m
+[32m+[m	[32m$bp->localgroupnotifier = new BPLocalGroupNotifier();[m
+[32m+[m[32m}[m
+[32m+[m[32madd_action( 'bp_loaded', 'bp_setup_local_group_notifier' );[m
+[32m+[m[41m    [m
+[32m+[m[32m?>[m
+\ No newline at end of file[m
+[1mdiff --git a/wp-content/plugins/bp-group-suggest/bp-group-suggest.php b/wp-content/plugins/bp-group-suggest/bp-group-suggest.php[m
+[1mnew file mode 100644[m
+[1mindex 0000000..0c21201[m
+[1m--- /dev/null[m
+[1m+++ b/wp-content/plugins/bp-group-suggest/bp-group-suggest.php[m
+[36m@@ -0,0 +1,252 @@[m
+[32m+[m[32m<?php[m
+[32m+[m[32m/**[m
+[32m+[m[32m * PLugin Name: BP Groups Suggest Widget[m
+[32m+[m[32m * Author: Brajesh Singh[m[41m [m
+[32m+[m[32m * Plugin URI: http://buddydev.com/plugins/bp-groups-suggest/[m
+[32m+[m[32m * Author URI: http://buddydev.com[m
+[32m+[m[32m * Version: 1.0.3[m
+[32m+[m[32m * License:GPL[m
+[32m+[m[32m * Last Updated: December 15, 2012[m
+[32m+[m[32m * Description: Simple Group suggestion widget based on friends Groups[m[41m [m
+[32m+[m[32m * Special thanks to @GWU for the idea of this widget[m
+[32m+[m[32m */[m
+[32m+[m[32m//a helper class for group suggestion[m
+[32m+[m[32m//always implement a singleton pattern, there are numerous benefits for the helper class[m
+[32m+[m[32mclass BPDevBPGroupSuggest{[m
+[32m+[m[41m    [m
+[32m+[m[32m    static $instance;[m
+[32m+[m[41m    [m
+[32m+[m[32m    private function __construct(){[m
+[32m+[m[41m     [m
+[32m+[m[32m        //load script[m
+[32m+[m[32m        add_action('wp_print_scripts',array(&$this,'load_js'));[m
+[32m+[m[32m        //ajax handling of hiding the suggestion[m
+[32m+[m[32m        add_action('wp_ajax_group_suggest_remove_suggestion',array(&$this,'hide_suggestion'));[m
+[32m+[m[41m        [m
+[32m+[m[32m        //load text domain[m
+[32m+[m[32m        add_action ( 'bp_loaded', array(&$this,'load_textdomain'), 2 );[m
+[32m+[m
+[32m+[m[32m}[m
+[32m+[m[32m//public method for getting the instance/initializing[m
+[32m+[m[32m    function get_instance(){[m
+[32m+[m[41m        [m
+[32m+[m[32m        if(!isset (self::$instance))[m
+[32m+[m[32m                self::$instance=new self();[m
+[32m+[m[32m        return self::$instance;[m
+[32m+[m[32m    }[m
+[32m+[m[41m   [m
+[32m+[m
+[32m+[m[41m  [m
+[32m+[m[41m   [m
+[32m+[m[32m   //ajax helper for hiding,it keeps the hidden group in usermeta[m[41m [m
+[32m+[m[32m   function hide_suggestion(){[m
+[32m+[m[41m       [m
+[32m+[m[32m        $suggestion_id=$_POST['suggestion_id']  ;[m
+[32m+[m[32m        check_ajax_referer('group-suggestion-remove-'.$suggestion_id);[m
+[32m+[m
+[32m+[m[32m         if(empty ($suggestion_id)||!is_user_logged_in())[m
+[32m+[m[32m             return;[m
+[32m+[m[41m         [m
+[32m+[m[32m        global $bp;[m
+[32m+[m[32m        $user_id=bp_loggedin_user_id();[m
+[32m+[m[32m        $excluded=get_user_meta($user_id,"hidden_group_suggestions" ,true);[m
+[32m+[m[32m        $excluded=(array)($excluded);[m
+[32m+[m[32m        $excluded[]=$suggestion_id;[m
+[32m+[m[41m        [m
+[32m+[m[32m        update_user_meta($user_id,"hidden_group_suggestions",$excluded);[m
+[32m+[m[41m        [m
+[32m+[m[32m        exit(0);[m
+[32m+[m[32m   }[m
+[32m+[m[32m  //get the hidden group ids as an array, yep u read it right[m
+[32m+[m[32m   function get_hidden($user_id=null){[m
+[32m+[m[32m       if(!$user_id)[m
+[32m+[m[32m           $user_id=bp_loggedin_user_id ();[m
+[32m+[m[32m       return get_user_meta($user_id,"hidden_group_suggestions" ,true);[m
+[32m+[m[32m   }[m
+[32m+[m[32m   //show the list here[m
+[32m+[m[32m   function suggestions_list($limit,$user_id=null){[m
+[32m+[m[32m       global $bp,$wpdb;[m
+[32m+[m[41m       [m
+[32m+[m[32m       if(!$user_id)[m
+[32m+[m	[32m$user_id = bp_loggedin_user_id();[m
+[32m+[m[41m       [m
+[32m+[m[32m       //who are the friends of current user, let us have their ids as array[m
+[32m+[m[32m        $my_friends=(array)friends_get_friend_user_ids($user_id);//get all friend ids[m
+[32m+[m[41m        [m
+[32m+[m[32m        //find friend's groups of the user[m
+[32m+[m[32m        $friends_list="(".join(",",$my_friends).")";[m
+[32m+[m[41m       [m
+[32m+[m[32m        $friends_groups_sql=  "SELECT DISTINCT group_id FROM  {$bp->groups->table_name} g, {$bp->groups->table_name_members} m WHERE g.id=m.group_id AND g.status='public' AND m.user_id in {$friends_list} AND is_confirmed= 1";[m[41m [m
+[32m+[m[32m        $friends_groups=$wpdb->get_col($friends_groups_sql);[m
+[32m+[m[41m        [m
+[32m+[m[41m       [m
+[32m+[m[41m        [m
+[32m+[m[41m        [m
+[32m+[m[32m        //get all current user  groups, includes pending,already a member, banned ,kicked etc[m
+[32m+[m[32m        $my_all_groups_sql=$wpdb->prepare( "SELECT DISTINCT group_id FROM {$bp->groups->table_name_members}  WHERE user_id = %d  ",$user_id);[m
+[32m+[m[32m        $my_groups=$wpdb->get_col($my_all_groups_sql);[m
+[32m+[m[41m        [m
+[32m+[m[32m        //groups the user has hidden[m
+[32m+[m[32m        $my_excluded=(array)self::get_hidden($user_id);[m
+[32m+[m[41m       [m
+[32m+[m[32m        //make an array of users group+groups hidden by user[m
+[32m+[m[32m        $excluded=array_merge($my_groups,$my_excluded);[m
+[32m+[m[32m        $excluded=array_unique($excluded);[m
+[32m+[m[32m       //so here we get the possible groups?[m
+[32m+[m[32m        $possible_groups=array_diff($friends_groups,$excluded);//we will store the possible group ids here[m
+[32m+[m[41m       [m
+[32m+[m[41m        [m
+[32m+[m[32m        if(!empty($possible_groups)){[m
+[32m+[m[32m           shuffle($possible_groups);//randomize[m
+[32m+[m[32m           $possible_groups=array_slice($possible_groups, 0,$limit);[m
+[32m+[m[32m        }[m
+[32m+[m[41m         [m
+[32m+[m[32m       //how to minim ize queries here by getting all the details in one query ?[m
+[32m+[m[32m        //[m
+[32m+[m[32m        //if we find and output individual group trough stanndard way,m that will be too many quesries, let us find it in a single query[m
+[32m+[m[32m        $list="(".join(',',$possible_groups).")";[m
+[32m+[m[32m        $query="SELECT * FROM {$bp->groups->table_name} WHERE id IN {$list}";[m
+[32m+[m[41m        [m
+[32m+[m[32m        $groups=$wpdb->get_results($query);[m
+[32m+[m[32m        shuffle($groups);//shuffle it[m
+[32m+[m[32m        if(!empty($groups)):?>[m
+[32m+[m[32m                       <ul id="groups-list" class="item-list suggested-group-item-list">[m
+[32m+[m[32m                        <?php 	foreach ($groups as $group):?>[m
+[32m+[m[32m                            <li>[m
+[32m+[m[32m                               <?php $group_link= bp_get_group_permalink($group);[m
+[32m+[m[32m                                     $group_name=  $group->name;[m
+[32m+[m[32m                                     $group->is_member=false;[m
+[32m+[m
+[32m+[m[32m                                ?>[m
+[32m+[m[32m                                <div class="item-avatar">[m
+[32m+[m[32m                                        <a href="<?php echo $group_link;?>"><?php echo bp_core_fetch_avatar(array('type'=>'thumb','width'=>25,'height'=>25,'object'=>'group','item_id'=>$group->id)); ?></a>[m
+[32m+[m[32m                                </div>[m
+[32m+[m
+[32m+[m[32m                                    <div class="item">[m
+[32m+[m[32m                                            <div class="item-title">[m
+[32m+[m[32m                                                    <a href="<?php echo $group_link; ?>"><?php echo $group_name; ?></a>[m
+[32m+[m[32m                                             </div>[m
+[32m+[m[32m                                    </div>[m
+[32m+[m[32m                                     <div class="action">[m
+[32m+[m[32m                                            <?php   self::get_hide_suggestion_link($group->id); ?>[m
+[32m+[m[41m                                         [m
+[32m+[m[32m                                            <?php echo bp_get_group_join_button( $group); ?>[m
+[32m+[m[32m                                    </div>[m
+[32m+[m[32m                                    <div class="clear"></div>[m
+[32m+[m[41m            [m
+[32m+[m[32m                            </li>[m
+[32m+[m[41m			[m
+[32m+[m[32m                        <?php endforeach;?>[m
+[32m+[m[32m                              </ul>[m
+[32m+[m[32m                     <?php else:?>[m
+[32m+[m[32m                      <div id="message" class="info">[m
+[32m+[m[32m                        <p><?php _e( "We don't have enough details to suggest a group yet.", 'buddypress' ) ?></p>[m
+[32m+[m[32m                    </div>[m
+[32m+[m
+[32m+[m[32m                            <?php endif;?>[m
+[32m+[m[41m                    [m
+[32m+[m[32m   <?php[m
+[32m+[m[32m   }[m
+[32m+[m[32m   //ui[m
+[32m+[m[32m   //get the link for hide (x) button[m
+[32m+[m[32m  function get_hide_suggestion_link($possible_group_id){[m
+[32m+[m[32m    $url=bp_get_root_domain()."/remove-group-suggestion/?suggest_id=".$possible_group_id."&_wpnonce=".wp_create_nonce('group-suggestion-remove-'.$possible_group_id);[m
+[32m+[m[32m?>[m
+[32m+[m[32m    <span class="remove-group-suggestion"><a href="<?php echo $url;?>" title="<?php __('Hide this suggestion','bp-group-suggest');?>">x</a></span>[m
+[32m+[m[32m<?php[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m //load javascript if user is logged in and is viewing the site[m
+[32m+[m[32m  function load_js(){[m
+[32m+[m[32m     if(!is_user_logged_in()||is_admin())[m
+[32m+[m[32m        return;[m
+[32m+[m[32m   $gsuggest_url=plugin_dir_url(__FILE__);//with a trailing slash[m
+[32m+[m[32m    wp_enqueue_script("group-suggest-js",$gsuggest_url."group-suggest.js",array("jquery"));[m
+[32m+[m[32m   }[m[41m [m
+[32m+[m[41m   [m
+[32m+[m[32m//load text domain[m
+[32m+[m[32m   //localization[m
+[32m+[m[32m    function load_textdomain(){[m
+[32m+[m
+[32m+[m[32m        $locale = apply_filters( 'group_suggest_load_textdomain_get_locale', get_locale() );[m
+[32m+[m[41m        [m
+[32m+[m[41m      [m
+[32m+[m	[32m// if load .mo file[m
+[32m+[m	[32mif ( !empty( $locale ) ) {[m
+[32m+[m		[32m$mofile_default = sprintf( '%slanguages/%s.mo', plugin_dir_path(__FILE__), $locale );[m
+[32m+[m[41m              [m
+[32m+[m		[32m$mofile = apply_filters( 'group_suggest_load_textdomain_mofile', $mofile_default );[m
+[32m+[m[41m		[m
+[32m+[m[32m                if ( file_exists( $mofile ) ) {[m
+[32m+[m[32m                    // make sure file exists, and load it[m
+[32m+[m			[32mload_textdomain( 'bp-group-suggest', $mofile );[m
+[32m+[m		[32m}[m
+[32m+[m	[32m}[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[41m   [m
+[32m+[m[32m}//end of helper class[m
+[32m+[m
+[32m+[m
+[32m+[m[32m//widget[m
+[32m+[m
+[32m+[m[32mclass BPDevGroupSuggestionWidget extends WP_Widget{[m
+[32m+[m[41m    [m
+[32m+[m[32m    function __construct() {[m
+[32m+[m[32m        parent::__construct(false, __('Group Suggestion Widget','bp-group-suggest'));[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    //display[m
+[32m+[m[41m    [m
+[32m+[m[32m    function widget($args, $instance) {[m
+[32m+[m[32m        global $bp;[m
+[32m+[m[32m        if(!is_user_logged_in())[m
+[32m+[m[32m            return;//do not show to non logged in user[m
+[32m+[m[32m        extract( $args );[m
+[32m+[m[32m        echo $before_widget.[m
+[32m+[m[32m                $before_title.[m
+[32m+[m[32m                    $instance['title'].[m
+[32m+[m[32m                $after_title;[m
+[32m+[m[32m                BPDevBPGroupSuggest::suggestions_list($instance['max']);[m
+[32m+[m[32m        echo $after_widget;[m[41m [m
+[32m+[m[41m        [m
+[32m+[m[32m    }[m
+[32m+[m[32m  //update[m
+[32m+[m[32m  function update($new_instance, $old_instance) {[m
+[32m+[m[32m        $instance = $old_instance;[m
+[32m+[m[32m        $instance['title'] = strip_tags( $new_instance['title'] );[m
+[32m+[m[32m        $instance['max'] = absint( $new_instance['max'] );[m
+[32m+[m
+[32m+[m[32m        return $instance;[m[41m [m
+[32m+[m[32m      }[m
+[32m+[m[32m  //widget options[m[41m    [m
+[32m+[m[32m function form($instance) {[m
+[32m+[m[41m     [m
+[32m+[m[32m        $instance = wp_parse_args( (array) $instance, array( 'title'=>__('Group Suggestions','bp-group-suggest'),'max' => 5 ) );[m
+[32m+[m[32m        $title = strip_tags( $instance['title'] );[m
+[32m+[m[32m        $max =absint( $instance['max'] );[m
+[32m+[m[32m        ?>[m
+[32m+[m[32m        <p>[m
+[32m+[m[32m                <label for="bp-groups-suggest-widget-title"><?php _e( 'Title' , 'bp-group-suggest'); ?>[m
+[32m+[m[32m                    <input type="text" id="<?php echo $this->get_field_id( 'title' ); ?>" name="<?php echo $this->get_field_name( 'title' ); ?>" class="widefat" value="<?php echo esc_attr( $title ); ?>" />[m
+[32m+[m[32m                </label>[m
+[32m+[m[32m        </p>[m
+[32m+[m[32m        <p>[m
+[32m+[m[32m            <label for="bp-show-groups-widget-per-page"><?php _e( 'Max Number of suggestions:', 'bp-group-suggest' ); ?>[m
+[32m+[m[32m                    <input class="widefat" id="<?php echo $this->get_field_id( 'max' ); ?>" name="<?php echo $this->get_field_name( 'max' ); ?>" type="text" value="<?php echo esc_attr( $max ); ?>" style="width: 30%" />[m
+[32m+[m[32m            </label>[m
+[32m+[m[32m        </p>[m
+[32m+[m[32m<?php }[m[41m     [m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m//register widget[m
+[32m+[m[32mfunction group_suggest_register_widget(){[m
+[32m+[m[32m  add_action('widgets_init', create_function('', 'return register_widget("BPDevGroupSuggestionWidget");') );[m
+[32m+[m[41m  [m
+[32m+[m[32m}[m
+[32m+[m[32madd_action('bp_loaded','group_suggest_register_widget');[m
+[32m+[m
+[32m+[m[41m [m
+[32m+[m[32m //initialize[m
+[32m+[m[32m    BPDevBPGroupSuggest::get_instance();[m
+[32m+[m[32m?>[m
+\ No newline at end of file[m
+[1mdiff --git a/wp-content/plugins/bp-group-suggest/group-suggest.js b/wp-content/plugins/bp-group-suggest/group-suggest.js[m
+[1mnew file mode 100644[m
+[1mindex 0000000..fcbed5f[m
+[1m--- /dev/null[m
+[1m+++ b/wp-content/plugins/bp-group-suggest/group-suggest.js[m
+[36m@@ -0,0 +1,74 @@[m
+[32m+[m[32mjQuery(document).ready(function(){[m
+[32m+[m[32mvar j=jQuery;[m
+[32m+[m[32mj(".suggested-group-item-list span.remove-group-suggestion a").live('click',function(){[m
+[32m+[m[32m//hide the suggestion[m
+[32m+[m[32mvar li=j(this).parent().parent().parent();[m
+[32m+[m[32mj(li).remove();[m
+[32m+[m[32mvar url = j(this).attr('href');[m
+[32m+[m[32mvar nonce=get_var_in_url(url,"_wpnonce");[m
+[32m+[m[32mvar suggested_group_id=get_var_in_url(url,"suggest_id");[m
+[32m+[m[32m j.post(ajaxurl,{[m
+[32m+[m[32m                 action:"group_suggest_remove_suggestion",[m
+[32m+[m[32m                 cookie:encodeURIComponent(document.cookie),[m
+[32m+[m[32m                 'suggestion_id':suggested_group_id,[m
+[32m+[m[32m                 '_wpnonce':nonce[m
+[32m+[m[32m                  },[m
+[32m+[m[32m                function(){[m
+[32m+[m[32m                    //nothing here[m
+[32m+[m[41m                [m
+[32m+[m[32m              });[m
+[32m+[m
+[32m+[m[32m//let us send a request to the server for hiding this group[m
+[32m+[m
+[32m+[m[32mreturn false;[m
+[32m+[m[32m//send request to server for not showing this group again in suggestion[m
+[32m+[m[32m//j.post();[m
+[32m+[m[32m});[m
+[32m+[m[32m/*taken from bp-default/_inc/global.js for ajaxified processing of group join request,sorry it won't work because the way bp handles group request processing*/[m
+[32m+[m[32m/*var jq=jQuery;[m
+[32m+[m[32mjq("ul.suggested-group-item-list div.group-button a").live('click', function() {[m
+[32m+[m[41m    [m
+[32m+[m[41m			[m
+[32m+[m		[32mvar gid = jq(this).parent().attr('id');[m
+[32m+[m		[32mgid = gid.split('-');[m
+[32m+[m		[32mgid = gid[1];[m
+[32m+[m
+[32m+[m		[32mvar nonce = jq(this).attr('href');[m
+[32m+[m		[32mnonce = nonce.split('?_wpnonce=');[m
+[32m+[m		[32mnonce = nonce[1].split('&');[m
+[32m+[m		[32mnonce = nonce[0];[m
+[32m+[m
+[32m+[m		[32mvar thelink = jq(this);[m
+[32m+[m
+[32m+[m		[32mjq.post( ajaxurl, {[m
+[32m+[m			[32maction: 'joinleave_group',[m
+[32m+[m			[32m'cookie': encodeURIComponent(document.cookie),[m
+[32m+[m			[32m'gid': gid,[m
+[32m+[m			[32m'_wpnonce': nonce[m
+[32m+[m		[32m},[m
+[32m+[m		[32mfunction(response)[m
+[32m+[m		[32m{[m
+[32m+[m			[32mvar parentdiv = thelink.parent();[m
+[32m+[m
+[32m+[m[41m			[m
+[32m+[m				[32mjq(parentdiv).fadeOut(200,[m
+[32m+[m					[32mfunction() {[m
+[32m+[m						[32mparentdiv.fadeIn(200).html(response);[m
+[32m+[m					[32m}[m
+[32m+[m				[32m);[m
+[32m+[m[41m			[m
+[32m+[m		[32m});[m
+[32m+[m		[32mreturn false;[m
+[32m+[m	[32m} );*/[m
+[32m+[m[32m//helper[m
+[32m+[m[32mfunction get_var_in_url(url,name){[m
+[32m+[m[32m    var urla=url.split("?");[m
+[32m+[m[32m    var qvars=urla[1].split("&");//so we hav an arry of name=val,name=val[m
+[32m+[m[32m    for(var i=0;i<qvars.length;i++){[m
+[32m+[m[32m        var qv=qvars[i].split("=");[m
+[32m+[m[32m        if(qv[0]==name)[m
+[32m+[m[32m            return qv[1];[m
+[32m+[m[32m      }[m
+[32m+[m[32m      return '';[m
+[32m+[m[32m}[m
+[32m+[m[32m});[m
+\ No newline at end of file[m
+[1mdiff --git a/wp-content/plugins/bp-group-suggest/languages/en_US.mo b/wp-content/plugins/bp-group-suggest/languages/en_US.mo[m
+[1mnew file mode 100644[m
+[1mindex 0000000..a359bdb[m
+Binary files /dev/null and b/wp-content/plugins/bp-group-suggest/languages/en_US.mo differ
+[1mdiff --git a/wp-content/plugins/bp-group-suggest/languages/group-suggestion.po b/wp-content/plugins/bp-group-suggest/languages/group-suggestion.po[m
+[1mnew file mode 100644[m
+[1mindex 0000000..9ae0d5c[m
+[1m--- /dev/null[m
+[1m+++ b/wp-content/plugins/bp-group-suggest/languages/group-suggestion.po[m
+[36m@@ -0,0 +1,40 @@[m
+[32m+[m[32mmsgid ""[m
+[32m+[m[32mmsgstr ""[m
+[32m+[m[32m"Project-Id-Version: bp-group-suggest\n"[m
+[32m+[m[32m"Report-Msgid-Bugs-To: \n"[m
+[32m+[m[32m"POT-Creation-Date: 2011-07-26 07:28+0530\n"[m
+[32m+[m[32m"PO-Revision-Date: 2011-07-26 07:28+0530\n"[m
+[32m+[m[32m"Last-Translator: Brajesh Singh <brajesh@gmail.com>\n"[m
+[32m+[m[32m"Language-Team: \n"[m
+[32m+[m[32m"Language: \n"[m
+[32m+[m[32m"MIME-Version: 1.0\n"[m
+[32m+[m[32m"Content-Type: text/plain; charset=UTF-8\n"[m
+[32m+[m[32m"Content-Transfer-Encoding: 8bit\n"[m
+[32m+[m[32m"X-Poedit-KeywordsList: __;_e\n"[m
+[32m+[m[32m"X-Poedit-Basepath: .\n"[m
+[32m+[m[32m"X-Poedit-SearchPath-0: /var/www/bp/1.2/test/wp3ms/wp-content/plugins/bp-group-suggest\n"[m
+[32m+[m
+[32m+[m[32m#: /var/www/bp/1.2/test/wp3ms/wp-content/plugins/bp-group-suggest/bp-group-suggest.php:138[m
+[32m+[m[32mmsgid "We don't have enough details to suggest a group yet."[m
+[32m+[m[32mmsgstr ""[m
+[32m+[m
+[32m+[m[32m#: /var/www/bp/1.2/test/wp3ms/wp-content/plugins/bp-group-suggest/bp-group-suggest.php:150[m
+[32m+[m[32mmsgid "Hide this suggestion"[m
+[32m+[m[32mmsgstr ""[m
+[32m+[m
+[32m+[m[32m#: /var/www/bp/1.2/test/wp3ms/wp-content/plugins/bp-group-suggest/bp-group-suggest.php:191[m
+[32m+[m[32mmsgid "Group Suggestion Widget"[m
+[32m+[m[32mmsgstr ""[m
+[32m+[m
+[32m+[m[32m#: /var/www/bp/1.2/test/wp3ms/wp-content/plugins/bp-group-suggest/bp-group-suggest.php:220[m
+[32m+[m[32mmsgid "Group Suggestions"[m
+[32m+[m[32mmsgstr ""[m
+[32m+[m
+[32m+[m[32m#: /var/www/bp/1.2/test/wp3ms/wp-content/plugins/bp-group-suggest/bp-group-suggest.php:225[m
+[32m+[m[32mmsgid "Title"[m
+[32m+[m[32mmsgstr ""[m
+[32m+[m
+[32m+[m[32m#: /var/www/bp/1.2/test/wp3ms/wp-content/plugins/bp-group-suggest/bp-group-suggest.php:230[m
+[32m+[m[32mmsgid "Max Number of suggestions:"[m
+[32m+[m[32mmsgstr ""[m
+[32m+[m
+[1mdiff --git a/wp-content/plugins/bp-group-suggest/languages/readme.txt b/wp-content/plugins/bp-group-suggest/languages/readme.txt[m
+[1mnew file mode 100644[m
+[1mindex 0000000..159c857[m
+[1m--- /dev/null[m
+[1m+++ b/wp-content/plugins/bp-group-suggest/languages/readme.txt[m
+[36m@@ -0,0 +1 @@[m
+[32m+[m[32mPlease translate the group-suggest.po and save the translated file as your_Local.mo  e.g en_US.mo or nl_NL.mo etc[m
+[1mdiff --git a/wp-content/plugins/limit-groups-per-user/limit-groups-per-user.php b/wp-content/plugins/limit-groups-per-user/limit-groups-per-user.php[m
+[1mnew file mode 100644[m
+[1mindex 0000000..a8bd0ce[m
+[1m--- /dev/null[m
+[1m+++ b/wp-content/plugins/limit-groups-per-user/limit-groups-per-user.php[m
+[36m@@ -0,0 +1,127 @@[m
+[32m+[m[32m<?php[m
+[32m+[m[32m/*[m
+[32m+[m[32m* Plugin name: Limit Groups per User[m
+[32m+[m[32m* description: Limit the number of groups a user can create.[m
+[32m+[m[32m* Author:Brajesh Singh[m
+[32m+[m[32m* Author URI: http://buddydev.com[m
+[32m+[m[32m* Plugin URI: http://buddydev.com/buddypress/limit-groups-per-user-plugin-for-buddypress/[m
+[32m+[m[32m* Version: 1.1.3[m
+[32m+[m[32m* Last Update: October 3, 2012[m
+[32m+[m[32m* License: GPL[m
+[32m+[m[32m*/[m
+[32m+[m
+[32m+[m
+[32m+[m[32m//bp1.5 has a hook to disable the create button, so let us remove that[m
+[32m+[m[32madd_filter('bp_user_can_create_groups','bpdev_can_current_user_create_new_groups');[m
+[32m+[m[32mfunction bpdev_can_current_user_create_new_groups($can_create){[m
+[32m+[m[32m    if(bpdev_can_create_new_groups(bp_loggedin_user_id()))[m
+[32m+[m[32m        return true;[m
+[32m+[m[32m    return false;[m
+[32m+[m[41m    [m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mfunction bpdev_restrict_group_create($user_id=null){[m
+[32m+[m	[32mglobal $bp;[m
+[32m+[m
+[32m+[m[32m//no restriction to site admin[m
+[32m+[m[32mif (!bp_is_group_create() ||is_super_admin())[m
+[32m+[m		[32mreturn false;[m
+[32m+[m[32m//if we are here,It is group creation step[m
+[32m+[m
+[32m+[m[32mif(!$user_id)[m
+[32m+[m	[32m$user_id=  bp_loggedin_user_id();[m
+[32m+[m[32m//even in cae of zero, it will return true[m
+[32m+[m[32mif(!empty($_COOKIE['bp_new_group_id']))[m
+[32m+[m[32m    return;//this is intermediate step of group creation[m
+[32m+[m[32mif(!bpdev_can_create_new_groups($user_id)){[m
+[32m+[m
+[32m+[m		[32mbp_core_add_message(apply_filters("restrict_group_message",__("Either You have exceeded the no. of groups you can create or you don't have permission to create group")),"error");[m
+[32m+[m		[32mremove_action( 'bp_actions', 'groups_action_create_group', 3 );[m
+[32m+[m		[32mbp_core_redirect(bp_get_groups_directory_permalink());[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m
+[32m+[m[32m}[m
+[32m+[m[32m/**[m
+[32m+[m[32m * Check if we should allow creating group or not[m
+[32m+[m[32m * @global type $bp[m
+[32m+[m[32m * @return type[m[41m [m
+[32m+[m[32m */[m
+[32m+[m[32mfunction bpdev_check_group_create(){[m
+[32m+[m	[32mglobal $bp;[m
+[32m+[m	[32mif(!function_exists('bp_is_active')||!bp_is_active('groups'))[m
+[32m+[m		[32mreturn; //do not cause headache[m
+[32m+[m[41m	[m
+[32m+[m	[32mbpdev_restrict_group_create();[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32madd_action('wp','bpdev_check_group_create',2);[m
+[32m+[m
+[32m+[m[32m/**[m
+[32m+[m[32m * Can current use create new group?[m
+[32m+[m[32m *[m[41m [m
+[32m+[m[32m * @global type $bp[m
+[32m+[m[32m * @param type $user_id[m
+[32m+[m[32m * @return type[m[41m [m
+[32m+[m[32m */[m
+[32m+[m
+[32m+[m
+[32m+[m[32mfunction bpdev_can_create_new_groups($user_id=false){[m
+[32m+[m[32m    global $bp;[m
+[32m+[m[41m    [m
+[32m+[m[32m    if(is_super_admin ())[m
+[32m+[m[32m        return true;[m
+[32m+[m[41m    [m
+[32m+[m[32m    if(!$user_id)[m
+[32m+[m[32m        $user_id=  bp_loggedin_user_id();[m
+[32m+[m[41m    [m
+[32m+[m[32m    $allowed_count=bp_get_option( 'limit-groups-creation-per-user',0 );//default 0, unlimited;[m
+[32m+[m[41m    [m
+[32m+[m[32m    $user_has_admin_rights=BP_Groups_Member::get_is_admin_of($user_id);// $wpdb->get_var( $wpdb->prepare( "SELECT count(group_id) as count FROM {$bp->groups->table_name_members} WHERE user_id = %d AND is_admin = 1 AND is_banned = 0", $user_id) );[m
+[32m+[m[32m    $count=$user_has_admin_rights["total"];[m[41m [m
+[32m+[m[41m    [m
+[32m+[m[32m    if(intval($count)>=$allowed_count)[m
+[32m+[m[32m        return false;[m
+[32m+[m[32m    return true;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m/**[m
+[32m+[m[32m * Admin Helper[m
+[32m+[m[32m */[m
+[32m+[m
+[32m+[m[32mclass BPLimitGroupsPerUserAdminHelper{[m
+[32m+[m[32m    private static $instance;[m
+[32m+[m[41m    [m
+[32m+[m[32m    function __construct() {[m
+[32m+[m[32m        add_action('bp_admin_init',array($this,'register_settings'),20);[m
+[32m+[m[32m    }[m
+[32m+[m[32m     function get_instance(){[m
+[32m+[m[32m     if(!isset (self::$instance))[m
+[32m+[m[32m             self::$instance=new self();[m
+[32m+[m[32m     return self::$instance;[m
+[32m+[m[32m    }[m
+[32m+[m[32m    function register_settings(){[m
+[32m+[m[32m        // Add the ajax Registration settings section[m
+[32m+[m[32m            add_settings_section( 'bp_limit_groups_per_user',        __( 'Limit Groups Per User Settings',  'bp-limit-groups-per-user' ), array($this,'reg_section'),   'buddypress'              );[m
+[32m+[m[32m            // Allow loading form via jax or nt?[m
+[32m+[m[32m            add_settings_field( 'limit-groups-creation-per-user', __( 'How many Groups a user can Create?',   'bp-limit-groups-per-user' ), array($this,'settings_field'),   'buddypress', 'bp_limit_groups_per_user' );[m
+[32m+[m[32m            register_setting  ( 'buddypress',         'limit-groups-creation-per-user',   'intval' );[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    function reg_section(){[m
+[32m+[m[41m        [m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    function settings_field(){[m
+[32m+[m[32m            $val=bp_get_option('limit-groups-creation-per-user',0);?>[m
+[32m+[m
+[32m+[m[41m         [m
+[32m+[m[41m                   [m
+[32m+[m[32m                    <label>[m
+[32m+[m[32m                        <input type="text" name="limit-groups-creation-per-user" id="limit-groups-creation-per-user" value="<?php echo $val;?>" /></label><br>[m
+[32m+[m[41m                    [m
+[32m+[m[32m   <?php }[m
+[32m+[m[41m    [m
+[32m+[m[32m}[m
+[32m+[m[32mBPLimitGroupsPerUserAdminHelper::get_instance();[m
+[32m+[m[32m?>[m
+\ No newline at end of file[m
+[1mdiff --git a/wp-content/plugins/limit-groups-per-user/readme.txt b/wp-content/plugins/limit-groups-per-user/readme.txt[m
+[1mnew file mode 100644[m
+[1mindex 0000000..c67f70b[m
+[1m--- /dev/null[m
+[1m+++ b/wp-content/plugins/limit-groups-per-user/readme.txt[m
+[36m@@ -0,0 +1,45 @@[m
+[32m+[m[32m=== Limit Groups Per User ===[m
+[32m+[m[32mContributors:sbrajesh[m
+[32m+[m[32mDonate link: http://buddydev.com/donate/[m
+[32m+[m[32mTags: buddypress,buddypress activity,sitewide activity, sitewide activity widget,buddypress sitewide activity widget[m
+[32m+[m[32mRequires at least: WordPress 3.4.2+buddypress 1.6.1[m
+[32m+[m[32mTested up to:buddypress 1.1.1[m
+[32m+[m[32mStable tag: 1.1.3[m
+[32m+[m
+[32m+[m[32mLimit Groups Per user plugin allows site admins to restrict the number og groups a user can create on a buddypress based Social network.[m
+[32m+[m[32m== Description ==[m
+[32m+[m[32mLimit Groups Per user plugin allows site admins to restrict the number og groups a user can create on a buddypress based Social network.[m
+[32m+[m
+[32m+[m[32mFeatures include:[m
+[32m+[m
+[32m+[m[32m* No restriction to Site Admin[m
+[32m+[m[32m* restrict Maximum number of Groups Created by a user[m
+[32m+[m
+[32m+[m[32m== Installation ==[m
+[32m+[m
+[32m+[m[32mThe plugin is simple to install:[m
+[32m+[m
+[32m+[m[32m1. Download `limit-groups-per-user.zip`[m
+[32m+[m[32m1. Unzip It[m
+[32m+[m[32m1. Upload `limit-grouops-per-user` directory to your `/wp-content/plugins` directory[m
+[32m+[m[32m1. Go to the plugin management page and activate the plugin "Limit Groups Per User", Activate the plugin sitewide if you want to use it sitewide.[m
+[32m+[m[32m1. Enter the maximum no. of groups in Dashboard->BuddyPress->Seneral Settings[m
+[32m+[m[32mOtherwise, Use the Plugin browser, upload it and activate, you are done.[m
+[32m+[m[32m== Frequently Asked Questions ==[m
+[32m+[m[32m= How to Use =[m
+[32m+[m[32mGo to Dashboard->Buddypress->General settings, eneter the maximum no. of groups a user can create. Click save. That's it.[m
+[32m+[m[32m= It is not showing the error message to user =[m
+[32m+[m[32mSince BuddyPress does not include the action "template_notices"[m
+[32m+[m[32min directory pages, please edit your theme/groups/index.php and put it somewhere below the padder div[m
+[32m+[m[32m`<?php do_action( 'template_notices' ) ?>`[m
+[32m+[m
+[32m+[m[32m== Changelog ==[m[41m [m
+[32m+[m[32m = Version 1.1.1 =[m
+[32m+[m[32m * Updated for BuddyPress 1.5[m
+[32m+[m[32m = Version 1.0 =[m
+[32m+[m[32m*Initial release[m
+[32m+[m
+[32m+[m
+[32m+[m[32m== Other ==[m
+[32m+[m
+[32m+[m[32mFor more info visit us at [BuddyDev.com](http://buddydev.com/ "The best place for all buddypress based plugins,themes tutorials")[m
+\ No newline at end of file[m

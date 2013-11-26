@@ -1,0 +1,9 @@
+/*
+Theme Name: Projectpress Hackathon
+Description: A "cbox-theme" child theme used to manage users and projects for an hackathon
+Author: Hackunito team
+Template: cbox-theme
+Version: 0.1.0
+*/
+
+@import url("../cbox-theme/style.css");
