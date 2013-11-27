@@ -2,6 +2,10 @@
 function theme_name_scripts() {
 	wp_enqueue_style( 'chosen-css', get_stylesheet_directory_uri() . '/chosen/chosen.min.css' );
 	wp_enqueue_script( 'chosen', get_stylesheet_directory_uri() . '/chosen/chosen.jquery.min.js', array(), '1.0.0', true );
+	if( 'project' == get_post_type() ):
+		wp_enqueue_script( 'bxslider-4', get_stylesheet_directory_uri() . '/bxslider-4/jquery.bxslider.min.js', array(), '1.0.0', true );
+		wp_enqueue_style( 'bxslider-4-css', get_stylesheet_directory_uri() . '/bxslider-4/jquery.bxslider.css' );
+	endif;
 }
 
 add_action( 'wp_enqueue_scripts', 'theme_name_scripts' );
@@ -10,7 +14,7 @@ add_action( 'wp_enqueue_scripts', 'theme_name_scripts' );
 // Exit if accessed directly
 if ( !defined( 'ABSPATH' ) ) exit;
 
-function chosen_init_js() {
+function projectpress_init_js() {
 //wp_enqueue_style( 'chosen-css', get_stylesheet_directory() . 'chosen/chosen.min.css' );
 //wp_enqueue_script( 'chosen', get_stylesheet_directory() . '/chosen/chosen.jquery.min.js', array(), '1.0.0', true );
 	if ( !wp_script_is( 'jquery' ) )
@@ -21,11 +25,15 @@ function chosen_init_js() {
 ?>
 	<script type="text/javascript">
 		jQuery("#field_2").chosen();
+		<?php if( 'project' == get_post_type() ): ?>
+		jQuery('.bxslider').bxSlider({auto: true, autoControls: true, controls:false});
+		<?php endif; ?>
 	</script>
 
+	
 <?php
 }
-add_action( 'wp_footer',    'chosen_init_js', 100 );
+add_action( 'wp_footer', 'projectpress_init_js', 100 );
 
 class HackTweets_Widget extends WP_Widget {
 
