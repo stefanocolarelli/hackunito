@@ -33,7 +33,7 @@
 						<?php edit_post_link(' ✍','',' ');?>
 					</h1>	
 					<?php
-					infinity_get_template_part( 'templates/parts/post-meta-top');	
+					/* #riqua da integrare successivamente in una struttura mvc infinity_get_template_part( 'templates/parts/post-meta-top');	*/
 					?>
 					<?php
 					$group_id = get_post_custom_values('_group_node');
@@ -43,36 +43,52 @@
 					$last_activity = $group -> last_activity;
 					$g_description = $group -> description;
 					?>
-					<div>
-						<p>Aggiornato al</p>
-						<p><?php echo substr($last_activity, 0, -8); ?></p>
+					<div class="project-meta-fields">
+						<span class="project-meta"><?php _e('Followers: ','infinity_text_domain'); ?>
+							<span class="group-couter"><?php echo $group -> total_member_count; ?> </span>
+						</span>
+						<span class="project-meta"><?php _e('Last update: ','infinity_text_domain'); ?>
+							<span class="group-couter"><?php 
+								$last_activity = $group -> last_activity; 
+								$newDate = date(__('H:i d/m/Y','infinity_text_domain'), strtotime($last_activity));
+								echo $newDate;
+							?> </span>
+						</span>
+						<!-- <?php bp_group_join_button(); ?> -->	
+						<div>SOCIAL [TODO]</div>
 					</div>
-					<!-- <?php bp_group_join_button(); ?> -->
-					<div>
-						<p>Utenti interessati: <?php echo $n_members; ?></p>
-					</div>							
 					<?php
 						do_action( 'before_single_entry' )
 					?>
 					<div class="entry">
-						<p><?php 
+						<div style="display:inline-block;width:49%;vertical-align:top">
+						<h5><?php _e('Description', 'infinity_text_domain'); ?></h5>
+						<?php 
 							$p_idea_progetto_group_extension_setting = groups_get_groupmeta( $g_id, $meta_key = 'idea_progetto_group_extension_setting');
 							$p_idea_progetto_group_extension_setting2 = groups_get_groupmeta( $g_id, $meta_key = 'idea_progetto_group_extension_setting2');
 							$p_impatto_progetto_group_extension_setting = groups_get_groupmeta( $g_id, $meta_key ='impatto_progetto_group_extension_setting');
 						echo $g_description;
-						 ?></p> 
-					   	<div>Groupmeta:
-					   	<ul>
-					   	<li><?php echo $p_idea_progetto_group_extension_setting;?></li>
-					   	<li><?php echo $p_idea_progetto_group_extension_setting2;?></li>
-					   	<li><?php echo $p_impatto_progetto_group_extension_setting;?></li>
-					   	</ul>
+						 ?></div> 
+					   	<div style="display:inline-block;width:49%;vertical-align:top">
+						<h5><?php __('Presentation', 'infinity_text_domain'); ?></h5>
+							<ul class="bxslider">
+								<li><h6>Impatto sul territorio [TODO]</h6><?php echo $p_idea_progetto_group_extension_setting;?></li>
+								<li><h6>Sostenibilità economica [TODO]</h6><?php echo $p_idea_progetto_group_extension_setting2;?></li>
+								<li><h6>Piano marketing [TODO]</h6><?php echo $p_impatto_progetto_group_extension_setting;?></li>
+							</ul>
 					   	</div>
-						<?php
-							do_action( 'open_single_entry' );
-							// the_content( __( 'Read the rest of this entry &rarr;', infinity_text_domain ) );
-							the_terms( $post->ID, 'area-of-interest');
-					   	?>
+						<?php do_action( 'open_single_entry' ); ?>
+						
+						<div id="project-taxonomies" >
+							<h5><?php _e("Tematics", "infinity_text_domain"); ?></h5>
+							<ul><li>
+							<?php
+							if(get_the_terms($post->ID, 'area-of-interest')){
+							the_terms( $post->ID, 'area-of-interest','','</li><li>');
+								}else{ _e("Nothing [TODO]", "infinity_text_domain"); }
+							?>
+							</li></ul>
+						</div>
 						<div style="clear: both;"></div>
 						<!-- SIDEBAR -->
 						<h2>SIDEBAR</h2>
@@ -86,14 +102,26 @@
 								echo $admin -> user_login.'</li>';
 							}
 							$g_mods = $group -> mods;
+							if($g_mods):
 							foreach($g_mods as $mod){
 								$m_id = $mod -> user_id;
 								echo '<li>'.get_avatar($m_id, 35);
 								echo $mod -> user_login.'</li>';
 							}
+							endif;
 							//var_dump($group);
 						?>
 						</ul></div>
+						<div id="project-need">
+							<h5><?php /* #riqua or Open position */ _e("Job - Skills required", "infinity_text_domain"); ?></h5>
+							<ul><li>
+							<?php
+							if(get_the_terms($post->ID, 'need')){
+							the_terms( $post->ID, 'need','','</li><li>');
+								}else{ _e("Nothing [TODO]", "infinity_text_domain"); }
+							?>
+							</li></ul>
+						</div>
 						<?php
 							wp_link_pages( array(
 								'before' => __( '<p><strong>Pages:</strong> ', infinity_text_domain ),

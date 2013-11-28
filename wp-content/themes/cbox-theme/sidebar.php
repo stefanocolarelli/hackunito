@@ -21,7 +21,12 @@
 			
 		<?php	
 			// Load Sidebars
-			infinity_base_sidebars();
+			if ( 'project' == get_post_type() ){
+				project_sidebar();
+			}
+			else{
+				infinity_base_sidebars();
+			}
 			do_action( 'close_sidebar' );
 		?>
 	
