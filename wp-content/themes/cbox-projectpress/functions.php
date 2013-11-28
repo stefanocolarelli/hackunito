@@ -1,4 +1,9 @@
 <?php
+// Exit if accessed directly
+if ( !defined( 'ABSPATH' ) ) exit;
+
+require_once( 'engine/includes/custom.php' );
+
 function theme_name_scripts() {
 	wp_enqueue_style( 'chosen-css', get_stylesheet_directory_uri() . '/chosen/chosen.min.css' );
 	wp_enqueue_script( 'chosen', get_stylesheet_directory_uri() . '/chosen/chosen.jquery.min.js', array(), '1.0.0', true );
@@ -9,10 +14,6 @@ function theme_name_scripts() {
 }
 
 add_action( 'wp_enqueue_scripts', 'theme_name_scripts' );
-
-
-// Exit if accessed directly
-if ( !defined( 'ABSPATH' ) ) exit;
 
 function projectpress_init_js() {
 //wp_enqueue_style( 'chosen-css', get_stylesheet_directory() . 'chosen/chosen.min.css' );
@@ -134,3 +135,26 @@ function my_bp_activity_unfavorite_link($activity_id) {
 global $activities_template;
 echo apply_filters( 'bp_get_activity_unfavorite_link', wp_nonce_url( site_url( BP_ACTIVITY_SLUG . '/unfavorite/' . $activity_id . '/' ), 'unmark_favorite' ) );
 }
+
+
+/*add deadline*/
+function counter_deadline(){
+					$date = strtotime("Jan 30, 2014 11:00 AM");
+					$remaining = $date - time();				
+					$days_remaining = floor($remaining / 86400);
+					$giorni = str_split($days_remaining);
+					return $days_remaining;
+}
+			
+function deadline_adminbar( $wp_admin_bar) {
+		$wp_admin_bar->add_node( array(
+		'id'    => 'deadline',
+		'parent' => 'top-secondary',
+		'title' => __( "Call Deadline", "infinity_text_domain" ).'<span id="ncountdown">'.counter_deadline().'</span>',
+		'meta'  => array(
+			'title' => __( "Call Deadline", "infinity_text_domain" ),			
+		),
+
+	));
+}
+add_action( 'admin_bar_menu', 'deadline_adminbar');

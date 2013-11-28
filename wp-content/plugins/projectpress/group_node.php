@@ -40,7 +40,8 @@ $labels_need = array(
             'editor',
             'author',
             'thumbnail',
-            'revisions'
+            'revisions',
+			'comments'
         ),
         'labels' => array(
             'name' => 'Project',
