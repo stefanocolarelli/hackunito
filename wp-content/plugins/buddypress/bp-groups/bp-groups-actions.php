@@ -143,10 +143,15 @@ function groups_action_create_group() {
 				'type' => 'created_group',
 				'item_id' => $bp->groups->new_group_id
 			) );
+			$postnode = groups_get_groupmeta( $bp->groups->new_group_id, $meta_key = 'post_node');
 
 			do_action( 'groups_group_create_complete', $bp->groups->new_group_id );
 
-			bp_core_redirect( bp_get_group_permalink( $bp->groups->current_group ) );
+			// #riqua hardcoded!!!! ALPHA TODO
+			//$postnode = groups_get_groupmeta( $bp->groups->current_group, $meta_key = 'post_node');
+			wp_redirect( get_post_permalink($postnode) );
+			exit;
+			// #riquatest bp_core_redirect( bp_get_group_permalink( $bp->groups->current_group ) );
 		} else {
 			/**
 			 * Since we don't know what the next step is going to be (any plugin can insert steps)
